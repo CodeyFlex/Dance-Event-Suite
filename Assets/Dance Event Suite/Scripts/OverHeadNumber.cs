@@ -24,7 +24,7 @@ public class OverHeadNumber : UdonSharpBehaviour
     public int maxDances = 10;
     public string noDancesText = "ND";
     public float MaxDistanceForClick = 5.0f;
-    public float ClickDelay = 60.0f;
+    public float ClickDelay = 0.1f;
     public float keepAlive = 8f;
     public bool ResetEnabledAfterEvent = false;
     public bool LookAtPlayers = false;
@@ -36,18 +36,18 @@ public class OverHeadNumber : UdonSharpBehaviour
     public TMP_Text text;
     [SerializeField]
     private CanvasGroup canvasGroup;
-    
+
     private VRCPlayerApi player;
     private bool IsEnabled = false;
-    
+
     private bool IsMasterRestored = false;
     private bool IsLocalRestored = false;
-    
+
     private Color red = new Color(1.0f, 0.0f, 0.0f, 1.0f);
     private Color green = new Color(0.0f, 1.0f, 0.0f, 1.0f);
     private Color orange = new Color(1.0f, 0.5f, 0.0f, 1.0f);
     private Color white = new Color(1.0f, 1.0f, 1.0f, 1.0f);
-    
+
     private void Start()
     {
         player = Networking.GetOwner(gameObject);
@@ -60,7 +60,7 @@ public class OverHeadNumber : UdonSharpBehaviour
 
         if (savedCount > 0)
         {
-            // If we find a saved count, set the synced variable to it and request serialization 
+            // If we find a saved count, set the synced variable to it and request serialization
             // so all clients update immediately upon joining.
             number = savedCount;
             RequestSerialization();
@@ -126,31 +126,31 @@ public class OverHeadNumber : UdonSharpBehaviour
 
     private void CheckStartTime()
     {
-        DateTime masterStartTime = new DateTime( PlayerData.GetLong(Networking.Master,"Talox.DancerGuidance.OverHeadNumberStartTime"));
-        DateTime localStartTime = new DateTime( PlayerData.GetLong(player,"Talox.DancerGuidance.OverHeadNumberStartTime"));
-        
+        DateTime masterStartTime = new DateTime(PlayerData.GetLong(Networking.Master, "Talox.DancerGuidance.OverHeadNumberStartTime"));
+        DateTime localStartTime = new DateTime(PlayerData.GetLong(player, "Talox.DancerGuidance.OverHeadNumberStartTime"));
+
         if (player.isMaster)
         {
             masterStartTime = DateTime.Now;
         }
-        
-        Debug.Log($"MasterStartTime: {masterStartTime} LocalStartTime: {localStartTime} Diff: {masterStartTime - localStartTime} 8 Hours: { TimeSpan.FromHours(keepAlive)}");
-        
+
+        Debug.Log($"MasterStartTime: {masterStartTime} LocalStartTime: {localStartTime} Diff: {masterStartTime - localStartTime} 8 Hours: {TimeSpan.FromHours(keepAlive)}");
+
         if (masterStartTime - (localStartTime + TimeSpan.FromHours(keepAlive)) > TimeSpan.Zero)
         {
             PlayerData.SetLong("Talox.DancerGuidance.OverHeadNumberStartTime", masterStartTime.Ticks);
             number = 0;
-            PlayerData.SetInt("Talox.DancerGuidance.OverHeadNumberCount",0);
+            PlayerData.SetInt("Talox.DancerGuidance.OverHeadNumberCount", 0);
             if (ResetEnabledAfterEvent)
             {
-                PlayerData.SetBool("Talox.DancerGuidance.OverHeadNumber",false);
+                PlayerData.SetBool("Talox.DancerGuidance.OverHeadNumber", false);
             }
             RequestSerialization();
             Debug.Log($"Number: {number} set to 0");
         }
         else
         {
-            number = PlayerData.GetInt(player,"Talox.DancerGuidance.OverHeadNumberCount");
+            number = PlayerData.GetInt(player, "Talox.DancerGuidance.OverHeadNumberCount");
             RequestSerialization();
             Debug.Log($"Number: {number}");
         }
@@ -184,22 +184,22 @@ public class OverHeadNumber : UdonSharpBehaviour
             text.text = "";
         }
     }
-    
+
     public void OnClick()
     {
         if (!CanClick)
             return;
-        
+
         if (!player.isLocal)
         {
-            if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) 
+            if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick)
                 return;
-            
-            SendCustomNetworkEvent(NetworkEventTarget.Owner,nameof(OnClick));
+
+            SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnClick));
             CanClick = false;
             return;
         }
-        
+
         CanClick = false;
 
         // 1. Calculate the next state based on current 'number'
@@ -214,15 +214,15 @@ public class OverHeadNumber : UdonSharpBehaviour
 
         PlayerData.SetInt("Talox.DancerGuidance.OverHeadNumberCount", number);
         RequestSerialization();
-        SendCustomEventDelayedSeconds(nameof(OnClickEnd),ClickDelay);
+        SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
     }
-    
+
     public void OnClickEnd()
     {
         CanClick = true;
         RequestSerialization();
     }
-    
+
     private void UpdateEnabled()
     {
         IsEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Talox.DancerGuidance.OverHeadNumber");

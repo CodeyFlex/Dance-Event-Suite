@@ -1,8 +1,9 @@
 fileFormatVersion: 2
-guid: 9449819524d51d54a8e12cbc94faeb95
-NativeFormatImporter:
+guid: f35bd196c489ce742a47e868665e2d9a
+labels:
+- RoslynAdditionalFiles
+TextScriptImporter:
   externalObjects: {}
-  mainObjectFileID: 11400000
   userData: 
   assetBundleName: 
   assetBundleVariant: 

@@ -11,10 +11,10 @@ public class OverHeadNumberEnabled : UdonSharpBehaviour
 {
     [SerializeField]
     private Image image;
-    
+
     private Color OnColor = new Color(0.0f, 1.0f, 0.0f, 1.0f);
     private Color OffColor = new Color(1.0f, 0.0f, 0.0f, 1.0f);
-    
+
     private bool IsEnabled = false;
 
     public override void OnPlayerDataUpdated(VRCPlayerApi player, PlayerData.Info[] infos)

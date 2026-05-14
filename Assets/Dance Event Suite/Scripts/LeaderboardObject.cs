@@ -13,7 +13,7 @@ public class LeaderboardObject : UdonSharpBehaviour
     public bool hasJoined;
     [UdonSynced]
     public double servertime;
-    
+
     [SerializeField]
     private CanvasGroup MainCanvasGroup;
     [SerializeField]
@@ -37,32 +37,33 @@ public class LeaderboardObject : UdonSharpBehaviour
         UpdateView();
     }
 
-    private void UpdateView(){
+    private void UpdateView()
+    {
         if (hasJoined)
         {
             MainCanvasGroup.alpha = 1;
             transform.SetAsLastSibling();
             int i;
-            for(i = 0; i < parent.childCount; i++)
+            for (i = 0; i < parent.childCount; i++)
             {
                 LeaderboardObject leaderboardObject = parent.GetChild(i).GetComponent<LeaderboardObject>();
                 leaderboardObject.UpdateIndex();
-                
+
                 if (!leaderboardObject.hasJoined)
                 {
                     transform.SetSiblingIndex(i);
                     break;
                 }
-                
-                if(leaderboardObject.servertime < servertime )
+
+                if (leaderboardObject.servertime < servertime)
                 {
                     continue;
                 }
-                
+
                 transform.SetSiblingIndex(i);
                 break;
             }
-            
+
             UpdateIndex();
             i++;
 
@@ -84,7 +85,7 @@ public class LeaderboardObject : UdonSharpBehaviour
             MainCanvasGroup.alpha = 0;
         }
     }
-    
+
     public void _Leave()
     {
         hasJoined = false;
@@ -102,6 +103,6 @@ public class LeaderboardObject : UdonSharpBehaviour
 
     private void UpdateIndex()
     {
-        numberText.text = (transform.GetSiblingIndex()+1).ToString() + ".";
+        numberText.text = (transform.GetSiblingIndex() + 1).ToString() + ".";
     }
 }
