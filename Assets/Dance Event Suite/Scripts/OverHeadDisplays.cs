@@ -32,6 +32,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
     [Tooltip("Child mesh visible above this player's head only on the selected dancer's screen.")]
     [SerializeField] private GameObject selectionMesh;
 
+    [Tooltip("Child checkmark mesh visible above audience member's head only on the dancing client who fulfilled the dance.")]
+    [SerializeField] private GameObject danceFulfilledMesh;
+
     [Tooltip("Must match the exact name of the OverHeadDisplaysManager GameObject in your scene.")]
     public string managerObjectName = "OverHeadDisplaysManager";
 
@@ -43,10 +46,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private int[] _activeSelectors;
     private int _activeSelectorCount = 0;
 
-    // Tracks the previous dancer-enabled state so UpdateEnabled only sweeps
-    // and clears selection meshes when a dancer specifically turns their toggle OFF.
-    // Without this, audience OHDs (always ownerEnabled=false) would sweep and
-    // hide every selection mesh every time any player's OverHeadDisplays key changes.
+    // Tracks dancer toggle state so audience OHDs don't sweep meshes on every change.
     private bool _wasOwnerDancer = false;
 
     private bool IsEnabled = false;
@@ -57,6 +57,16 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private Color green  = new Color(0.0f, 1.0f, 0.0f, 1.0f);
     private Color orange = new Color(1.0f, 0.5f, 0.0f, 1.0f);
     private Color white  = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // VRC Persistence Strings
+    private const string KEY_OVERHEAD_DISPLAYS = "Codeyflex.DanceEventSuite.OverHeadDisplays";
+    private const string KEY_OVERHEAD_DISPLAYS_COUNT = "Codeyflex.DanceEventSuite.OverHeadDisplaysCount";
+    private const string KEY_OVERHEAD_DISPLAYS_START = "Codeyflex.DanceEventSuite.OverHeadDisplaysStartTime";
+    private const string KEY_SELECTED_DANCER = "Codeyflex.DanceEventSuite.SelectedDancer";
+    private const string KEY_NO_DANCES = "Codeyflex.DanceEventSuite.NoDances";
+    private const string KEY_STAFF_MODE = "Codeyflex.DanceEventSuite.StaffMode";
+    private const string KEY_DANCED_FOR = "Codeyflex.DanceEventSuite.DancedFor";
+    private const string KEY_REQUEST_FULFILLED = "Codeyflex.DanceEventSuite.RequestFulfilled";
 
     // -----------------------------------------------------------------------
     // Lifecycle
@@ -81,10 +91,11 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
 
         selectionMesh.SetActive(false);
+        danceFulfilledMesh.SetActive(false);
         UpdateEnabled();
         SetPreference();
 
-        int savedCount = PlayerData.GetInt(player, "Codeyflex.DanceEventSuite.OverHeadDisplaysCount");
+        int savedCount = PlayerData.GetInt(player, KEY_OVERHEAD_DISPLAYS_COUNT);
         number = savedCount > 0 ? savedCount : 0;
         RequestSerialization();
     }
@@ -115,6 +126,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public void ShowSelectionMesh()
     {
+        if (danceFulfilledMesh.activeSelf) return;
         selectionMesh.SetActive(true);
         Debug.Log($"[OHD] ShowSelectionMesh called on {player.displayName} (id:{ownerPlayerId})");
     }
@@ -125,15 +137,31 @@ public class OverHeadDisplays : UdonSharpBehaviour
         Debug.Log($"[OHD] HideSelectionMesh called on {player.displayName} (id:{ownerPlayerId})");
     }
 
+    public void ShowDanceFulfilledMesh()
+    {
+        selectionMesh.SetActive(false);
+        danceFulfilledMesh.SetActive(true);
+    }
+
+    public void HideDanceFulfilledMesh()
+    {
+        danceFulfilledMesh.SetActive(false);
+    }
+
     // -----------------------------------------------------------------------
     // VRChat callbacks
     // -----------------------------------------------------------------------
+
+    private bool IsLocalDancer()
+    {
+        return player.isLocal && PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
+    }
 
     public override void OnPlayerDataUpdated(VRCPlayerApi player1, PlayerData.Info[] infos)
     {
         foreach (PlayerData.Info info in infos)
         {
-            if (info.Key == "Codeyflex.DanceEventSuite.OverHeadDisplays")
+            if (info.Key == KEY_OVERHEAD_DISPLAYS)
             {
                 UpdateEnabled();
                 OnDeserialization();
@@ -142,24 +170,13 @@ public class OverHeadDisplays : UdonSharpBehaviour
             if (info.Key == "Talox.DancerGuidance.Preference")
                 SetPreference();
 
-            if (info.Key == "Codeyflex.DanceEventSuite.SelectedDancer")
+            if (info.Key == KEY_SELECTED_DANCER)
             {
                 if (manager == null) continue;
-
-                // OnPlayerDataUpdated fires on every client for every OHD instance.
-                // Without this guard, Dancer's OHD would run on Audience members client too,
-                // see selectedDancerId == Dancer's ownerPlayerId, and show audience members mesh
-                // for Audience members — making the mesh visible to all dancers, not just Dancers.
-                // Each client should only process selection events through its own
-                // local player's OHD instance.
-                if (!player.isLocal) continue;
-
-                bool ownerIsDancer = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.OverHeadDisplays");
-                if (!ownerIsDancer) continue;
-
+                if (!IsLocalDancer()) continue;
                 if (player1.playerId == ownerPlayerId) continue;
 
-                int selectedDancerId = PlayerData.GetInt(player1, "Codeyflex.DanceEventSuite.SelectedDancer");
+                int selectedDancerId = PlayerData.GetInt(player1, KEY_SELECTED_DANCER);
                 bool player1HadMeSelected = ContainsSelector(player1.playerId);
 
                 if (selectedDancerId == ownerPlayerId)
@@ -184,19 +201,37 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 }
             }
 
-            if (info.Key == "Codeyflex.DanceEventSuite.NoDances")
+            if (info.Key == KEY_NO_DANCES)
             {
                 if (player1.playerId == ownerPlayerId)
                     OnDeserialization();
 
-                if (player1.isLocal && PlayerData.GetBool(player1, "Codeyflex.DanceEventSuite.NoDances"))
-                    PlayerData.SetInt("Codeyflex.DanceEventSuite.SelectedDancer", 0);
+                if (player1.isLocal && PlayerData.GetBool(player1, KEY_NO_DANCES))
+                    PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
+
+                if (!IsLocalDancer()) continue;
+                string dancedFor = PlayerData.GetString(player, KEY_DANCED_FOR);
+                RefreshSingleDanceFulfilledMesh(dancedFor, player1);
             }
 
-            if (info.Key == "Codeyflex.DanceEventSuite.StaffMode")
+            if (info.Key == KEY_STAFF_MODE)
             {
                 UpdateEnabled();
                 OnDeserialization();
+            }
+
+            if (info.Key == KEY_DANCED_FOR)
+            {
+                if (!IsLocalDancer()) continue;
+                string dancedFor = PlayerData.GetString(player, KEY_DANCED_FOR);
+                RefreshDanceFulfilledMeshes(dancedFor);
+            }
+
+            if (info.Key == KEY_OVERHEAD_DISPLAYS_COUNT)
+            {
+                if (!IsLocalDancer()) continue;
+                string dancedFor = PlayerData.GetString(player, KEY_DANCED_FOR);
+                RefreshSingleDanceFulfilledMesh(dancedFor, player1);
             }
         }
     }
@@ -216,7 +251,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 if (restoredPlayer.isLocal)
                 {
                     CheckStartTime();
-                    PlayerData.SetLong("Codeyflex.DanceEventSuite.OverHeadDisplaysStartTime", DateTime.Now.Ticks);
+                    PlayerData.SetLong(KEY_OVERHEAD_DISPLAYS_START, DateTime.Now.Ticks);
                 }
                 else
                 {
@@ -231,9 +266,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
         // explicitly hide for players who didn't select this dancer, and doing so
         // risks incorrectly hiding another audience member's mesh if the manager
         // lookup returns an unexpected result.
-        if (manager != null && PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.OverHeadDisplays"))
+        if (manager != null && PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS))
         {
-            int selectedDancerId = PlayerData.GetInt(restoredPlayer, "Codeyflex.DanceEventSuite.SelectedDancer");
+            int selectedDancerId = PlayerData.GetInt(restoredPlayer, KEY_SELECTED_DANCER);
             if (selectedDancerId == ownerPlayerId)
             {
                 OverHeadDisplays restoredOHD = manager.GetForPlayer(restoredPlayer);
@@ -247,6 +282,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         if (restoredPlayer.playerId == ownerPlayerId)
             OnDeserialization();
+
+        if (restoredPlayer.isLocal && PlayerData.GetBool(restoredPlayer, KEY_OVERHEAD_DISPLAYS))
+        {
+            string dancedFor = PlayerData.GetString(restoredPlayer, KEY_DANCED_FOR);
+            RefreshDanceFulfilledMeshes(dancedFor);
+        }
 
         UpdateEnabled();
     }
@@ -283,14 +324,39 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Existing logic (unchanged)
-    // -----------------------------------------------------------------------
+    private void ClearSelectionMeshes()
+    {
+        int count = manager.GetCount();
+        OverHeadDisplays[] all = manager.GetAll();
+        for (int i = 0; i < count; i++)
+            if (all[i] != null) all[i].HideSelectionMesh();
+        _activeSelectorCount = 0;
+    }
+
+    private void RestoreSelectionMeshes()
+    {
+        VRCPlayerApi[] players = new VRCPlayerApi[VRCPlayerApi.GetPlayerCount()];
+        VRCPlayerApi.GetPlayers(players);
+        foreach (VRCPlayerApi p in players)
+        {
+            if (!Utilities.IsValid(p)) continue;
+            if (p.playerId == ownerPlayerId) continue;
+            if (PlayerData.GetInt(p, KEY_SELECTED_DANCER) == ownerPlayerId)
+            {
+                OverHeadDisplays selectorOHD = manager.GetForPlayer(p);
+                if (selectorOHD != null)
+                {
+                    AddSelector(p.playerId);
+                    selectorOHD.ShowSelectionMesh();
+                }
+            }
+        }
+    }
 
     private void CheckStartTime()
     {
-        DateTime masterStartTime = new DateTime(PlayerData.GetLong(Networking.Master, "Codeyflex.DanceEventSuite.OverHeadDisplaysStartTime"));
-        DateTime localStartTime  = new DateTime(PlayerData.GetLong(player, "Codeyflex.DanceEventSuite.OverHeadDisplaysStartTime"));
+        DateTime masterStartTime = new DateTime(PlayerData.GetLong(Networking.Master, KEY_OVERHEAD_DISPLAYS_START));
+        DateTime localStartTime  = new DateTime(PlayerData.GetLong(player, KEY_OVERHEAD_DISPLAYS_START));
 
         if (player.isMaster) masterStartTime = DateTime.Now;
 
@@ -299,25 +365,26 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         if (masterStartTime - (localStartTime + TimeSpan.FromHours(keepAlive)) > TimeSpan.Zero)
         {
-            PlayerData.SetLong("Codeyflex.DanceEventSuite.OverHeadDisplaysStartTime", masterStartTime.Ticks);
+            PlayerData.SetLong(KEY_OVERHEAD_DISPLAYS_START, masterStartTime.Ticks);
             number = 0;
-            PlayerData.SetInt("Codeyflex.DanceEventSuite.OverHeadDisplaysCount", 0);
-            PlayerData.SetBool("Codeyflex.DanceEventSuite.RequestFulfilled", false);
-            PlayerData.SetBool("Codeyflex.DanceEventSuite.NoDances", false);
+            PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, 0);
+            PlayerData.SetBool(KEY_REQUEST_FULFILLED, false);
+            PlayerData.SetBool(KEY_NO_DANCES, false);
+            PlayerData.SetString(KEY_DANCED_FOR, "");
             if (ResetEnabledAfterEvent)
-                PlayerData.SetBool("Codeyflex.DanceEventSuite.OverHeadDisplays", false);
+                PlayerData.SetBool(KEY_OVERHEAD_DISPLAYS, false);
             RequestSerialization();
         }
         else
         {
-            number = PlayerData.GetInt(player, "Codeyflex.DanceEventSuite.OverHeadDisplaysCount");
+            number = PlayerData.GetInt(player, KEY_OVERHEAD_DISPLAYS_COUNT);
             RequestSerialization();
         }
     }
 
     public override void OnDeserialization()
     {
-        if (PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.NoDances"))
+        if (PlayerData.GetBool(player, KEY_NO_DANCES))
         {
             text.text = noDancesText;
             buttonImage.color = GetColorForNumber(maxDances);
@@ -354,11 +421,13 @@ public class OverHeadDisplays : UdonSharpBehaviour
     {
         if (!CanClick) return;
 
-        if (PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.NoDances")) return;
+        if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
 
         if (!player.isLocal)
         {
             if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) return;
+            ShowDanceFulfilledMesh();
+            AppendToDancedForList(ownerPlayerId);
             SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnClick));
             CanClick = false;
             return;
@@ -369,17 +438,17 @@ public class OverHeadDisplays : UdonSharpBehaviour
         // If this audience member had a dancer selected, clear it and lock further
         // selections for the rest of this event. This runs on the owner's (Audience Members)
         // client — the only client that can write Audience Members own PlayerData.
-        if (PlayerData.GetInt(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.SelectedDancer") != 0)
+        if (PlayerData.GetInt(Networking.LocalPlayer, KEY_SELECTED_DANCER) != 0)
         {
-            PlayerData.SetInt("Codeyflex.DanceEventSuite.SelectedDancer", 0);
-            PlayerData.SetBool("Codeyflex.DanceEventSuite.RequestFulfilled", true);
+            PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
+            PlayerData.SetBool(KEY_REQUEST_FULFILLED, true);
         }
 
         int nextNumber = CalculateNextNumberState(number);
         text.text = GetDisplayTextForNumber(nextNumber);
         buttonImage.color = GetColorForNumber(nextNumber);
         number = nextNumber;
-        PlayerData.SetInt("Codeyflex.DanceEventSuite.OverHeadDisplaysCount", number);
+        PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, number);
         RequestSerialization();
         SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
     }
@@ -392,46 +461,20 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     private void UpdateEnabled()
     {
-        IsEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays") ||
-                    PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode");
-        bool ownerEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.OverHeadDisplays");
-        bool ownerStaff = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.StaffMode");
+        IsEnabled = PlayerData.GetBool(Networking.LocalPlayer, KEY_OVERHEAD_DISPLAYS) ||
+                    PlayerData.GetBool(Networking.LocalPlayer, KEY_STAFF_MODE);
+        bool ownerEnabled = PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
+        bool ownerStaff = PlayerData.GetBool(player, KEY_STAFF_MODE);
         canvasGroup.alpha = !ownerEnabled & !ownerStaff & IsEnabled ? 1 : 0;
 
-        // Only sweep and clear selection meshes if THIS dancer specifically just
-        // turned their toggle OFF. Without _wasOwnerDancer, audience OHDs
-        // (always ownerEnabled=false) would sweep all meshes on every update.
         if (_wasOwnerDancer && !ownerEnabled && manager != null)
-        {
-            int count = manager.GetCount();
-            OverHeadDisplays[] all = manager.GetAll();
-            for (int i = 0; i < count; i++)
-                if (all[i] != null) all[i].HideSelectionMesh();
-            _activeSelectorCount = 0;
-            Debug.Log($"[OHD:{player.displayName} id:{ownerPlayerId}] Dancer deactivated, cleared all selection meshes.");
-        }
+            ClearSelectionMeshes();
 
-        // When a dancer reactivates their toggle, restore selection meshes
-        // for any audience members who still have this dancer selected in persistence.
         if (!_wasOwnerDancer && ownerEnabled && manager != null)
         {
-            VRCPlayerApi[] players = new VRCPlayerApi[VRCPlayerApi.GetPlayerCount()];
-            VRCPlayerApi.GetPlayers(players);
-            foreach (VRCPlayerApi p in players)
-            {
-                if (!Utilities.IsValid(p)) continue;
-                if (p.playerId == ownerPlayerId) continue;
-                if (PlayerData.GetInt(p, "Codeyflex.DanceEventSuite.SelectedDancer") == ownerPlayerId)
-                {
-                    OverHeadDisplays selectorOHD = manager.GetForPlayer(p);
-                    if (selectorOHD != null)
-                    {
-                        AddSelector(p.playerId);
-                        selectorOHD.ShowSelectionMesh();
-                    }
-                }
-            }
-            Debug.Log($"[OHD:{player.displayName} id:{ownerPlayerId}] Dancer reactivated, restored {_activeSelectorCount} selection meshes.");
+            RestoreSelectionMeshes();
+            string dancedFor = PlayerData.GetString(player, KEY_DANCED_FOR);
+            RefreshDanceFulfilledMeshes(dancedFor);
         }
 
         _wasOwnerDancer = ownerEnabled;
@@ -460,5 +503,77 @@ public class OverHeadDisplays : UdonSharpBehaviour
         else if (num > dancesNoLongerNeeded) return red;
         else if (num > dancesNeeded && num <= dancesNoLongerNeeded) return orange;
         else return green;
+    }
+
+    // -----------------------------------------------------------------------
+    // DanceFulfilledMesh helpers (local client only)
+    // -----------------------------------------------------------------------
+
+    private bool ShouldShowDanceFulfilledMesh(string dancedFor, OverHeadDisplays ohd)
+    {
+        return IsIdInList(dancedFor, ohd.GetOwnerPlayerId())
+            && ohd.number < maxDances
+            && !PlayerData.GetBool(ohd.GetOwnerPlayer(), KEY_NO_DANCES);
+    }
+
+    private void RefreshDanceFulfilledMeshes(string dancedFor)
+    {
+        if (manager == null) return;
+        int count = manager.GetCount();
+        OverHeadDisplays[] all = manager.GetAll();
+        for (int i = 0; i < count; i++)
+        {
+            OverHeadDisplays ohd = all[i];
+            if (ohd == null) continue;
+            if (ShouldShowDanceFulfilledMesh(dancedFor, ohd))
+                ohd.ShowDanceFulfilledMesh();
+            else
+                ohd.HideDanceFulfilledMesh();
+        }
+    }
+
+    private void RefreshSingleDanceFulfilledMesh(string dancedFor, VRCPlayerApi audiencePlayer)
+    {
+        if (manager == null) return;
+        OverHeadDisplays ohd = manager.GetForPlayer(audiencePlayer);
+        if (ohd == null) return;
+        if (ShouldShowDanceFulfilledMesh(dancedFor, ohd))
+            ohd.ShowDanceFulfilledMesh();
+        else
+            ohd.HideDanceFulfilledMesh();
+    }
+
+    private void AppendToDancedForList(int playerId)
+    {
+        string existing = PlayerData.GetString(Networking.LocalPlayer, KEY_DANCED_FOR);
+        if (IsIdInList(existing, playerId)) return;
+
+        string idStr = playerId.ToString();
+        string updated = existing.Length > 0 ? existing + " " + idStr : idStr;
+        PlayerData.SetString(KEY_DANCED_FOR, updated);
+    }
+
+    private bool IsIdInList(string list, int playerId)
+    {
+        if (list == null || list.Length == 0) return false;
+
+        string idStr = playerId.ToString();
+        int listLen = list.Length;
+        int idLen = idStr.Length;
+
+        for (int i = 0; i <= listLen - idLen; i++)
+        {
+            bool match = true;
+            for (int j = 0; j < idLen; j++)
+            {
+                if (list[i + j] != idStr[j]) { match = false; break; }
+            }
+            if (!match) continue;
+
+            bool startBoundary = i == 0 || list[i - 1] == ' ';
+            bool endBoundary = i + idLen == listLen || list[i + idLen] == ' ';
+            if (startBoundary && endBoundary) return true;
+        }
+        return false;
     }
 }
