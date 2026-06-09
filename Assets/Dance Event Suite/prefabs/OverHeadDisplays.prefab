@@ -860,7 +860,7 @@ MonoBehaviour:
   dancesNoLongerNeeded: 4
   maxDances: 10
   noDancesText: ND
-  MaxDistanceForClick: 5
+  MaxDistanceForClick: 4
   ClickDelay: 0.1
   keepAlive: 3
   ResetEnabledAfterEvent: 1
