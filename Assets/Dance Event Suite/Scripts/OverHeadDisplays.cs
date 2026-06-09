@@ -411,6 +411,29 @@ public class OverHeadDisplays : UdonSharpBehaviour
             Debug.Log($"[OHD:{player.displayName} id:{ownerPlayerId}] Dancer deactivated, cleared all selection meshes.");
         }
 
+        // When a dancer reactivates their toggle, restore selection meshes
+        // for any audience members who still have this dancer selected in persistence.
+        if (!_wasOwnerDancer && ownerEnabled && manager != null)
+        {
+            VRCPlayerApi[] players = new VRCPlayerApi[VRCPlayerApi.GetPlayerCount()];
+            VRCPlayerApi.GetPlayers(players);
+            foreach (VRCPlayerApi p in players)
+            {
+                if (!Utilities.IsValid(p)) continue;
+                if (p.playerId == ownerPlayerId) continue;
+                if (PlayerData.GetInt(p, "Codeyflex.DanceEventSuite.SelectedDancer") == ownerPlayerId)
+                {
+                    OverHeadDisplays selectorOHD = manager.GetForPlayer(p);
+                    if (selectorOHD != null)
+                    {
+                        AddSelector(p.playerId);
+                        selectorOHD.ShowSelectionMesh();
+                    }
+                }
+            }
+            Debug.Log($"[OHD:{player.displayName} id:{ownerPlayerId}] Dancer reactivated, restored {_activeSelectorCount} selection meshes.");
+        }
+
         _wasOwnerDancer = ownerEnabled;
     }
 
