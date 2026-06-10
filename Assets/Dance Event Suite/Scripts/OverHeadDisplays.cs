@@ -473,7 +473,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
         bool ownerEnabled = PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
         bool ownerStaff = PlayerData.GetBool(player, KEY_STAFF_MODE);
         bool ownerMedia = PlayerData.GetBool(player, KEY_MEDIA_MODE);
-        canvasGroup.alpha = !ownerEnabled & !ownerStaff & !ownerMedia & _isEnabled ? 1 : 0;
+        bool visible = !ownerEnabled & !ownerStaff & !ownerMedia & _isEnabled;
+        canvasGroup.alpha = visible ? 1 : 0;
+        canvasGroup.interactable = visible;
+        canvasGroup.blocksRaycasts = visible;
+        BoxCollider col = (BoxCollider)GetComponent(typeof(BoxCollider));
+        if (col != null) col.enabled = visible;
 
         if (_wasOwnerDancer && !ownerEnabled && manager != null)
             ClearSelectionMeshes();
