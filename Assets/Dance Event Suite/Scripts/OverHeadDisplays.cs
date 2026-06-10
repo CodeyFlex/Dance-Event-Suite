@@ -49,7 +49,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     // Tracks dancer toggle state so audience OHDs don't sweep meshes on every change.
     private bool _wasOwnerDancer = false;
 
-    private bool IsEnabled = false;
+    private bool _isEnabled = false;
     private bool IsMasterRestored = false;
     private bool IsLocalRestored = false;
 
@@ -245,7 +245,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public override void OnPlayerRestored(VRCPlayerApi restoredPlayer)
     {
-        if (this.player.isLocal)
+        if (player.isLocal)
         {
             if (restoredPlayer.isLocal)
             {
@@ -421,7 +421,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
             transform.rotation = Quaternion.LookRotation(lookDirection, Vector3.up);
         }
 
-        if (!IsEnabled) text.text = "";
+        if (!_isEnabled) text.text = "";
     }
 
     public void OnClick()
@@ -468,12 +468,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     private void UpdateEnabled()
     {
-        IsEnabled = PlayerData.GetBool(Networking.LocalPlayer, KEY_OVERHEAD_DISPLAYS) ||
-                    PlayerData.GetBool(Networking.LocalPlayer, KEY_STAFF_MODE);
+        _isEnabled = PlayerData.GetBool(Networking.LocalPlayer, KEY_OVERHEAD_DISPLAYS) ||
+                     PlayerData.GetBool(Networking.LocalPlayer, KEY_STAFF_MODE);
         bool ownerEnabled = PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
         bool ownerStaff = PlayerData.GetBool(player, KEY_STAFF_MODE);
         bool ownerMedia = PlayerData.GetBool(player, KEY_MEDIA_MODE);
-        canvasGroup.alpha = !ownerEnabled & !ownerStaff & !ownerMedia & IsEnabled ? 1 : 0;
+        canvasGroup.alpha = !ownerEnabled & !ownerStaff & !ownerMedia & _isEnabled ? 1 : 0;
 
         if (_wasOwnerDancer && !ownerEnabled && manager != null)
             ClearSelectionMeshes();

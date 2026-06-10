@@ -1338,11 +1338,6 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 3406100584746224333, guid: 7f9a68da3d2a6194894c394b3056cafd,
         type: 3}
-    - target: {fileID: 4646457665469640894, guid: 7f9a68da3d2a6194894c394b3056cafd,
-        type: 3}
-      propertyPath: _syncMethod
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 4981541771046321856, guid: 7f9a68da3d2a6194894c394b3056cafd,
         type: 3}
       propertyPath: m_Name
