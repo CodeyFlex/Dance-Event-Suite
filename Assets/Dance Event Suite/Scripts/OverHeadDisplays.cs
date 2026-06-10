@@ -67,6 +67,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private const string KEY_STAFF_MODE = "Codeyflex.DanceEventSuite.StaffMode";
     private const string KEY_DANCED_FOR = "Codeyflex.DanceEventSuite.DancedFor";
     private const string KEY_REQUEST_FULFILLED = "Codeyflex.DanceEventSuite.RequestFulfilled";
+    private const string KEY_MEDIA_MODE = "Codeyflex.DanceEventSuite.MediaMode";
 
     // -----------------------------------------------------------------------
     // Lifecycle
@@ -215,6 +216,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
             }
 
             if (info.Key == KEY_STAFF_MODE)
+            {
+                UpdateEnabled();
+                OnDeserialization();
+            }
+
+            if (info.Key == KEY_MEDIA_MODE)
             {
                 UpdateEnabled();
                 OnDeserialization();
@@ -465,7 +472,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
                     PlayerData.GetBool(Networking.LocalPlayer, KEY_STAFF_MODE);
         bool ownerEnabled = PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
         bool ownerStaff = PlayerData.GetBool(player, KEY_STAFF_MODE);
-        canvasGroup.alpha = !ownerEnabled & !ownerStaff & IsEnabled ? 1 : 0;
+        bool ownerMedia = PlayerData.GetBool(player, KEY_MEDIA_MODE);
+        canvasGroup.alpha = !ownerEnabled & !ownerStaff & !ownerMedia & IsEnabled ? 1 : 0;
 
         if (_wasOwnerDancer && !ownerEnabled && manager != null)
             ClearSelectionMeshes();
@@ -546,6 +554,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private void AppendToDancedForList(int playerId)
     {
         string existing = PlayerData.GetString(Networking.LocalPlayer, KEY_DANCED_FOR);
+        if (existing == null) existing = "";
         if (IsIdInList(existing, playerId)) return;
 
         string idStr = playerId.ToString();

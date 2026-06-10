@@ -33,6 +33,8 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
                 }
                 if (info.Key == "Codeyflex.DanceEventSuite.OverHeadDisplays")
                     needsUpdate = true;
+                if (info.Key == "Codeyflex.DanceEventSuite.MediaMode")
+                    needsUpdate = true;
             }
             if (needsUpdate)
                 UpdateVisual();
@@ -52,17 +54,22 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
     {
         if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) return;
 
-        if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays")) return;
+        if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays") ||
+            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode")) return;
 
         PlayerData.SetBool("Codeyflex.DanceEventSuite.StaffMode", !IsEnabled);
         if (!IsEnabled)
+        {
             PlayerData.SetBool("Codeyflex.DanceEventSuite.OverHeadDisplays", false);
+            PlayerData.SetBool("Codeyflex.DanceEventSuite.MediaMode", false);
+        }
     }
 
     private void UpdateVisual()
     {
         bool dancerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays");
-        if (dancerEnabled)
+        bool mediaEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode");
+        if (dancerEnabled || mediaEnabled)
             image.color = DisabledColor;
         else
             image.color = IsEnabled ? OnColor : OffColor;
