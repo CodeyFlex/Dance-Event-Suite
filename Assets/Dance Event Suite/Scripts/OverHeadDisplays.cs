@@ -511,13 +511,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public void OnEventManagerClick()
     {
-        if (!CanClick) return;
-        CanClick = false;
-
         audienceSpecialState = (audienceSpecialState + 1) % 3;
         UpdateSpecialStateText();
         RequestSerialization();
-        SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
     }
 
     public void OnDanceFulfillmentClick()
