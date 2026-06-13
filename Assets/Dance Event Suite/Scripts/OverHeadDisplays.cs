@@ -25,7 +25,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     public bool LookAtPlayers = false;
 
     [SerializeField] private UnityEngine.UI.Image buttonImage;
-    [SerializeField] public TMP_Text preference;
+    //[SerializeField] public TMP_Text preference;
     [SerializeField] public TMP_Text text;
     [SerializeField] private CanvasGroup canvasGroup;
 
@@ -94,7 +94,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
         selectionMesh.SetActive(false);
         danceFulfilledMesh.SetActive(false);
         UpdateEnabled();
-        SetPreference();
+        //SetPreference();
 
         int savedCount = PlayerData.GetInt(player, KEY_OVERHEAD_DISPLAYS_COUNT);
         number = savedCount > 0 ? savedCount : 0;
@@ -167,10 +167,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 UpdateEnabled();
                 OnDeserialization();
             }
-
+            /*
             if (info.Key == "Talox.DancerGuidance.Preference")
                 SetPreference();
-
+            */
             if (info.Key == KEY_SELECTED_DANCER)
             {
                 if (manager == null) continue;
@@ -258,7 +258,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 if (restoredPlayer.isLocal)
                 {
                     CheckStartTime();
-                    PlayerData.SetLong(KEY_OVERHEAD_DISPLAYS_START, DateTime.Now.Ticks);
+                    PlayerData.SetLong(KEY_OVERHEAD_DISPLAYS_START, DateTime.UtcNow.Ticks);
                 }
                 else
                 {
@@ -365,7 +365,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
         DateTime masterStartTime = new DateTime(PlayerData.GetLong(Networking.Master, KEY_OVERHEAD_DISPLAYS_START));
         DateTime localStartTime  = new DateTime(PlayerData.GetLong(player, KEY_OVERHEAD_DISPLAYS_START));
 
-        if (player.isMaster) masterStartTime = DateTime.Now;
+        if (player.isMaster) masterStartTime = DateTime.UtcNow;
 
         Debug.Log($"MasterStartTime: {masterStartTime} LocalStartTime: {localStartTime} " +
                   $"Diff: {masterStartTime - localStartTime} KeepAlive: {TimeSpan.FromHours(keepAlive)}");
@@ -492,12 +492,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         _wasOwnerDancer = ownerEnabled;
     }
-
+    /*
     private void SetPreference()
     {
         preference.text = PlayerData.GetString(player, "Talox.DancerGuidance.Preference");
     }
-
+    */
     private int CalculateNextNumberState(int currentNumber)
     {
         if (currentNumber < maxDances) return currentNumber + 1;

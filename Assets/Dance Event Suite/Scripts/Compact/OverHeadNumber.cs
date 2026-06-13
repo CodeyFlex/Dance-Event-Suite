@@ -110,7 +110,7 @@ public class OverHeadNumber : UdonSharpBehaviour
                 if (player.isLocal)
                 {
                     CheckStartTime();
-                    PlayerData.SetLong("Talox.DancerGuidance.OverHeadNumberStartTime", DateTime.Now.Ticks);
+                    PlayerData.SetLong("Talox.DancerGuidance.OverHeadNumberStartTime", DateTime.UtcNow.Ticks);
                 }
                 else
                 {
@@ -131,7 +131,7 @@ public class OverHeadNumber : UdonSharpBehaviour
 
         if (player.isMaster)
         {
-            masterStartTime = DateTime.Now;
+            masterStartTime = DateTime.UtcNow;
         }
 
         Debug.Log($"MasterStartTime: {masterStartTime} LocalStartTime: {localStartTime} Diff: {masterStartTime - localStartTime} 8 Hours: {TimeSpan.FromHours(keepAlive)}");
