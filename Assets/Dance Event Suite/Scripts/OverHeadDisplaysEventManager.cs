@@ -6,7 +6,7 @@ using VRC.SDKBase;
 using VRC.Udon;
 
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-public class OverHeadDisplaysStaff : UdonSharpBehaviour
+public class OverHeadDisplaysEventManager : UdonSharpBehaviour
 {
     [SerializeField]
     private Image image;
@@ -26,16 +26,16 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
             bool needsUpdate = false;
             foreach (PlayerData.Info info in infos)
             {
-                if (info.Key == "Codeyflex.DanceEventSuite.StaffMode")
+                if (info.Key == "Codeyflex.DanceEventSuite.EventManagerMode")
                 {
-                    IsEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.StaffMode");
+                    IsEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.EventManagerMode");
                     needsUpdate = true;
                 }
                 if (info.Key == "Codeyflex.DanceEventSuite.OverHeadDisplays")
                     needsUpdate = true;
-                if (info.Key == "Codeyflex.DanceEventSuite.MediaMode")
+                if (info.Key == "Codeyflex.DanceEventSuite.StaffMode")
                     needsUpdate = true;
-                if (info.Key == "Codeyflex.DanceEventSuite.EventManagerMode")
+                if (info.Key == "Codeyflex.DanceEventSuite.MediaMode")
                     needsUpdate = true;
             }
             if (needsUpdate)
@@ -47,7 +47,7 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
     {
         if (player.isLocal)
         {
-            IsEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.StaffMode");
+            IsEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.EventManagerMode");
             UpdateVisual();
         }
     }
@@ -57,24 +57,24 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
         if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) return;
 
         if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays") ||
-            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode") ||
-            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode")) return;
+            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode") ||
+            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode")) return;
 
-        PlayerData.SetBool("Codeyflex.DanceEventSuite.StaffMode", !IsEnabled);
+        PlayerData.SetBool("Codeyflex.DanceEventSuite.EventManagerMode", !IsEnabled);
         if (!IsEnabled)
         {
             PlayerData.SetBool("Codeyflex.DanceEventSuite.OverHeadDisplays", false);
+            PlayerData.SetBool("Codeyflex.DanceEventSuite.StaffMode", false);
             PlayerData.SetBool("Codeyflex.DanceEventSuite.MediaMode", false);
-            PlayerData.SetBool("Codeyflex.DanceEventSuite.EventManagerMode", false);
         }
     }
 
     private void UpdateVisual()
     {
         bool dancerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays");
+        bool staffEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode");
         bool mediaEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode");
-        bool eventManagerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode");
-        if (dancerEnabled || mediaEnabled || eventManagerEnabled)
+        if (dancerEnabled || staffEnabled || mediaEnabled)
             image.color = DisabledColor;
         else
             image.color = IsEnabled ? OnColor : OffColor;

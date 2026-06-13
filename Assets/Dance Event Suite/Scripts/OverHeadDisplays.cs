@@ -12,6 +12,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
 {
     [UdonSynced] public int number;
     [UdonSynced] private bool CanClick = true;
+    [UdonSynced] private int audienceSpecialState;
 
     public Vector3 offset;
     public int dancesNeeded = 2;
@@ -34,6 +35,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     [Tooltip("Child checkmark mesh visible above audience member's head only on the dancing client who fulfilled the dance.")]
     [SerializeField] private GameObject danceFulfilledMesh;
+
+    [Tooltip("Separate text object showing Birthday/Freshie state set by Event Manager.")]
+    [SerializeField] private TMP_Text audienceSpecialStateText;
 
     [Tooltip("Must match the exact name of the OverHeadDisplaysManager GameObject in your scene.")]
     public string managerObjectName = "OverHeadDisplaysManager";
@@ -68,6 +72,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private const string KEY_DANCED_FOR = "Codeyflex.DanceEventSuite.DancedFor";
     private const string KEY_REQUEST_FULFILLED = "Codeyflex.DanceEventSuite.RequestFulfilled";
     private const string KEY_MEDIA_MODE = "Codeyflex.DanceEventSuite.MediaMode";
+    private const string KEY_EVENT_MANAGER_MODE = "Codeyflex.DanceEventSuite.EventManagerMode";
 
     // -----------------------------------------------------------------------
     // Lifecycle
@@ -93,6 +98,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         selectionMesh.SetActive(false);
         danceFulfilledMesh.SetActive(false);
+        if (audienceSpecialStateText != null)
+            audienceSpecialStateText.gameObject.SetActive(audienceSpecialState > 0);
         UpdateEnabled();
         //SetPreference();
 
@@ -222,6 +229,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
             }
 
             if (info.Key == KEY_MEDIA_MODE)
+            {
+                UpdateEnabled();
+                OnDeserialization();
+            }
+
+            if (info.Key == KEY_EVENT_MANAGER_MODE)
             {
                 UpdateEnabled();
                 OnDeserialization();
@@ -374,6 +387,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
         {
             PlayerData.SetLong(KEY_OVERHEAD_DISPLAYS_START, masterStartTime.Ticks);
             number = 0;
+            audienceSpecialState = 0;
             PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, 0);
             PlayerData.SetBool(KEY_REQUEST_FULFILLED, false);
             PlayerData.SetBool(KEY_NO_DANCES, false);
@@ -391,6 +405,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public override void OnDeserialization()
     {
+        UpdateSpecialStateText();
+
         if (PlayerData.GetBool(player, KEY_NO_DANCES))
         {
             text.text = noDancesText;
@@ -421,21 +437,36 @@ public class OverHeadDisplays : UdonSharpBehaviour
             transform.rotation = Quaternion.LookRotation(lookDirection, Vector3.up);
         }
 
-        if (!_isEnabled) text.text = "";
+        if (!_isEnabled)
+        {
+            text.text = "";
+            if (audienceSpecialStateText != null)
+                audienceSpecialStateText.gameObject.SetActive(false);
+        }
     }
 
     public void OnClick()
     {
         if (!CanClick) return;
 
-        if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
-
         if (!player.isLocal)
         {
             if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) return;
+
+            if (PlayerData.GetBool(Networking.LocalPlayer, KEY_EVENT_MANAGER_MODE))
+            {
+                SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnEventManagerClick));
+                CanClick = false;
+                return;
+            }
+
+            if (!PlayerData.GetBool(Networking.LocalPlayer, KEY_OVERHEAD_DISPLAYS)) return;
+
+            if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
+
             ShowDanceFulfilledMesh();
             AppendToDancedForList(ownerPlayerId);
-            SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnClick));
+            SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnDanceFulfillmentClick));
             CanClick = false;
             return;
         }
@@ -451,6 +482,51 @@ public class OverHeadDisplays : UdonSharpBehaviour
             PlayerData.SetBool(KEY_REQUEST_FULFILLED, true);
         }
 
+        if (PlayerData.GetBool(player, KEY_EVENT_MANAGER_MODE))
+        {
+            audienceSpecialState = (audienceSpecialState + 1) % 3;
+            UpdateSpecialStateText();
+            RequestSerialization();
+            SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
+            return;
+        }
+
+        if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
+
+        if (PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS))
+        {
+            int nextNumber = CalculateNextNumberState(number);
+            text.text = GetDisplayTextForNumber(nextNumber);
+            buttonImage.color = GetColorForNumber(nextNumber);
+            number = nextNumber;
+            PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, number);
+            RequestSerialization();
+            SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
+        }
+    }
+
+    public void OnClickEnd()
+    {
+        CanClick = true;
+        RequestSerialization();
+    }
+
+    public void OnEventManagerClick()
+    {
+        audienceSpecialState = (audienceSpecialState + 1) % 3;
+        UpdateSpecialStateText();
+        RequestSerialization();
+        SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
+    }
+
+    public void OnDanceFulfillmentClick()
+    {
+        if (PlayerData.GetInt(Networking.LocalPlayer, KEY_SELECTED_DANCER) != 0)
+        {
+            PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
+            PlayerData.SetBool(KEY_REQUEST_FULFILLED, true);
+        }
+
         int nextNumber = CalculateNextNumberState(number);
         text.text = GetDisplayTextForNumber(nextNumber);
         buttonImage.color = GetColorForNumber(nextNumber);
@@ -460,20 +536,35 @@ public class OverHeadDisplays : UdonSharpBehaviour
         SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
     }
 
-    public void OnClickEnd()
+    private void UpdateSpecialStateText()
     {
-        CanClick = true;
-        RequestSerialization();
+        if (audienceSpecialStateText == null) return;
+        if (audienceSpecialState == 1)
+        {
+            audienceSpecialStateText.text = "Birthday!";
+            audienceSpecialStateText.gameObject.SetActive(true);
+        }
+        else if (audienceSpecialState == 2)
+        {
+            audienceSpecialStateText.text = "Freshie!";
+            audienceSpecialStateText.gameObject.SetActive(true);
+        }
+        else
+        {
+            audienceSpecialStateText.gameObject.SetActive(false);
+        }
     }
 
     private void UpdateEnabled()
     {
         _isEnabled = PlayerData.GetBool(Networking.LocalPlayer, KEY_OVERHEAD_DISPLAYS) ||
-                     PlayerData.GetBool(Networking.LocalPlayer, KEY_STAFF_MODE);
+                     PlayerData.GetBool(Networking.LocalPlayer, KEY_STAFF_MODE) ||
+                     PlayerData.GetBool(Networking.LocalPlayer, KEY_EVENT_MANAGER_MODE);
         bool ownerEnabled = PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
         bool ownerStaff = PlayerData.GetBool(player, KEY_STAFF_MODE);
         bool ownerMedia = PlayerData.GetBool(player, KEY_MEDIA_MODE);
-        bool visible = !ownerEnabled & !ownerStaff & !ownerMedia & _isEnabled;
+        bool ownerEventManager = PlayerData.GetBool(player, KEY_EVENT_MANAGER_MODE);
+        bool visible = !ownerEnabled & !ownerStaff & !ownerMedia & !ownerEventManager & _isEnabled;
         canvasGroup.alpha = visible ? 1 : 0;
         canvasGroup.interactable = visible;
         canvasGroup.blocksRaycasts = visible;

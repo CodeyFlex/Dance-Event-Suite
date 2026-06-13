@@ -35,6 +35,8 @@ public class OverHeadDisplaysEnabled : UdonSharpBehaviour
                     needsUpdate = true;
                 if (info.Key == "Codeyflex.DanceEventSuite.MediaMode")
                     needsUpdate = true;
+                if (info.Key == "Codeyflex.DanceEventSuite.EventManagerMode")
+                    needsUpdate = true;
             }
             if (needsUpdate)
                 UpdateVisual();
@@ -54,13 +56,15 @@ public class OverHeadDisplaysEnabled : UdonSharpBehaviour
     {
         if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) return;
         if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode") ||
-            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode")) return;
+            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode") ||
+            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode")) return;
 
         PlayerData.SetBool("Codeyflex.DanceEventSuite.OverHeadDisplays", !IsEnabled);
         if (!IsEnabled)
         {
             PlayerData.SetBool("Codeyflex.DanceEventSuite.StaffMode", false);
             PlayerData.SetBool("Codeyflex.DanceEventSuite.MediaMode", false);
+            PlayerData.SetBool("Codeyflex.DanceEventSuite.EventManagerMode", false);
         }
     }
 
@@ -68,7 +72,8 @@ public class OverHeadDisplaysEnabled : UdonSharpBehaviour
     {
         bool staffEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode");
         bool mediaEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode");
-        if (staffEnabled || mediaEnabled)
+        bool eventManagerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode");
+        if (staffEnabled || mediaEnabled || eventManagerEnabled)
             image.color = DisabledColor;
         else
             image.color = IsEnabled ? OnColor : OffColor;
