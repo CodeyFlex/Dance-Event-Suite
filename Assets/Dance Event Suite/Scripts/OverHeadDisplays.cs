@@ -20,7 +20,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     public int maxDances = 10;
     public string noDancesText = "ND";
     public float MaxDistanceForClick = 5.0f;
-    public float ClickDelay = 0.1f;
+    public float ClickDelay = 3f;
     public float keepAlive = 8f;
     public bool ResetEnabledAfterEvent = false;
     public bool LookAtPlayers = false;
@@ -456,7 +456,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
             if (PlayerData.GetBool(Networking.LocalPlayer, KEY_EVENT_MANAGER_MODE))
             {
                 SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnEventManagerClick));
-                CanClick = false;
                 return;
             }
 
@@ -467,7 +466,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
             ShowDanceFulfilledMesh();
             AppendToDancedForList(ownerPlayerId);
             SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnDanceFulfillmentClick));
-            CanClick = false;
             return;
         }
 
@@ -513,6 +511,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public void OnEventManagerClick()
     {
+        if (!CanClick) return;
+        CanClick = false;
+
         audienceSpecialState = (audienceSpecialState + 1) % 3;
         UpdateSpecialStateText();
         RequestSerialization();
@@ -521,6 +522,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public void OnDanceFulfillmentClick()
     {
+        if (!CanClick) return;
+        CanClick = false;
+
         if (PlayerData.GetInt(Networking.LocalPlayer, KEY_SELECTED_DANCER) != 0)
         {
             PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
