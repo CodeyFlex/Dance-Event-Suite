@@ -22,7 +22,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     public float MaxDistanceForClick = 5.0f;
     public float ClickDelay = 3f;
     public float keepAlive = 8f;
-    public bool ResetEnabledAfterEvent = false;
+    public bool ResetEnabledAfterEvent = true;
     public bool LookAtPlayers = false;
 
     [SerializeField] private UnityEngine.UI.Image buttonImage;
@@ -383,12 +383,19 @@ public class OverHeadDisplays : UdonSharpBehaviour
             PlayerData.SetLong(KEY_OVERHEAD_DISPLAYS_START, masterStartTime.Ticks);
             number = 0;
             audienceSpecialState = 0;
-            PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, 0);
-            PlayerData.SetBool(KEY_REQUEST_FULFILLED, false);
-            PlayerData.SetBool(KEY_NO_DANCES, false);
-            PlayerData.SetString(KEY_DANCED_FOR, "");
+            
             if (ResetEnabledAfterEvent)
+            {
+                PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, 0);
+                PlayerData.SetBool(KEY_REQUEST_FULFILLED, false);
+                PlayerData.SetBool(KEY_NO_DANCES, false);
+                PlayerData.SetString(KEY_DANCED_FOR, "");
+                PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
                 PlayerData.SetBool(KEY_OVERHEAD_DISPLAYS, false);
+                PlayerData.SetBool(KEY_STAFF_MODE, false);
+                PlayerData.SetBool(KEY_MEDIA_MODE, false);
+                PlayerData.SetBool(KEY_EVENT_MANAGER_MODE, false);
+            }
             RequestSerialization();
         }
         else
