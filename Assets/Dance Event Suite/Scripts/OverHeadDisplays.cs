@@ -26,7 +26,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
     public bool LookAtPlayers = false;
 
     [SerializeField] private UnityEngine.UI.Image buttonImage;
-    //[SerializeField] public TMP_Text preference;
     [SerializeField] public TMP_Text text;
     [SerializeField] private CanvasGroup canvasGroup;
 
@@ -101,7 +100,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
         if (audienceSpecialStateText != null)
             audienceSpecialStateText.gameObject.SetActive(audienceSpecialState > 0);
         UpdateEnabled();
-        //SetPreference();
 
         int savedCount = PlayerData.GetInt(player, KEY_OVERHEAD_DISPLAYS_COUNT);
         number = savedCount > 0 ? savedCount : 0;
@@ -174,10 +172,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 UpdateEnabled();
                 OnDeserialization();
             }
-            /*
-            if (info.Key == "Talox.DancerGuidance.Preference")
-                SetPreference();
-            */
+
             if (info.Key == KEY_SELECTED_DANCER)
             {
                 if (manager == null) continue;
@@ -583,12 +578,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         _wasOwnerDancer = ownerEnabled;
     }
-    /*
-    private void SetPreference()
-    {
-        preference.text = PlayerData.GetString(player, "Talox.DancerGuidance.Preference");
-    }
-    */
+
     private int CalculateNextNumberState(int currentNumber)
     {
         if (currentNumber < maxDances) return currentNumber + 1;
