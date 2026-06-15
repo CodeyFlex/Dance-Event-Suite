@@ -72,6 +72,14 @@ public class DancerListUI : UdonSharpBehaviour
                 RefreshButtonColours();
                 continue;
             }
+
+            if ((info.Key == "Codeyflex.DanceEventSuite.StaffMode" ||
+                 info.Key == "Codeyflex.DanceEventSuite.MediaMode" ||
+                 info.Key == "Codeyflex.DanceEventSuite.EventManagerMode") && player.isLocal)
+            {
+                RefreshButtonColours();
+                continue;
+            }
         }
     }
 
@@ -98,6 +106,11 @@ public class DancerListUI : UdonSharpBehaviour
 
         if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.RequestFulfilled"))
             return; // Request already fulfilled this event.
+
+        if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode") ||
+            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode") ||
+            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode"))
+            return; // Staff roles cannot make selections.
 
         int currentSelectionId = PlayerData.GetInt(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.SelectedDancer");
 
@@ -152,13 +165,17 @@ public class DancerListUI : UdonSharpBehaviour
         if (_slotDancerIds == null) return;
 
         bool isLocked = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.RequestFulfilled");
+        bool isStaffRole = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays") ||
+                           PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode") ||
+                           PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode") ||
+                           PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode");
         int currentSelectionId = PlayerData.GetInt(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.SelectedDancer");
 
         for (int i = 0; i < buttonImages.Length; i++)
         {
             if (!buttonImages[i].gameObject.activeSelf) continue;
 
-            if (isLocked)
+            if (isLocked || isStaffRole)
             {
                 buttonImages[i].color = _lockedColour;
                 continue;

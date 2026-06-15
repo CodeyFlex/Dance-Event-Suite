@@ -72,6 +72,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private const string KEY_REQUEST_FULFILLED = "Codeyflex.DanceEventSuite.RequestFulfilled";
     private const string KEY_MEDIA_MODE = "Codeyflex.DanceEventSuite.MediaMode";
     private const string KEY_EVENT_MANAGER_MODE = "Codeyflex.DanceEventSuite.EventManagerMode";
+    private const string KEY_AUDIENCE_SPECIAL_STATE = "Codeyflex.DanceEventSuite.AudienceSpecialState";
 
     // -----------------------------------------------------------------------
     // Lifecycle
@@ -277,11 +278,13 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
 
         // Only restore selection mesh state for players who had this dancer selected.
+        // Guarded by player.isLocal so non-dancer viewers (staff, media, event manager)
+        // never activate selection meshes on their client.
         // Skipping the else-hide: meshes start hidden in Start(), so no need to
         // explicitly hide for players who didn't select this dancer, and doing so
         // risks incorrectly hiding another audience member's mesh if the manager
         // lookup returns an unexpected result.
-        if (manager != null && PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS))
+        if (manager != null && player.isLocal && PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS))
         {
             int selectedDancerId = PlayerData.GetInt(restoredPlayer, KEY_SELECTED_DANCER);
             if (selectedDancerId == ownerPlayerId)
@@ -296,7 +299,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
 
         if (restoredPlayer.playerId == ownerPlayerId)
+        {
+            audienceSpecialState = PlayerData.GetInt(player, KEY_AUDIENCE_SPECIAL_STATE);
             OnDeserialization();
+        }
 
         if (restoredPlayer.isLocal && PlayerData.GetBool(restoredPlayer, KEY_OVERHEAD_DISPLAYS))
         {
@@ -395,6 +401,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 PlayerData.SetBool(KEY_STAFF_MODE, false);
                 PlayerData.SetBool(KEY_MEDIA_MODE, false);
                 PlayerData.SetBool(KEY_EVENT_MANAGER_MODE, false);
+                PlayerData.SetInt(KEY_AUDIENCE_SPECIAL_STATE, 0);
             }
             RequestSerialization();
         }
@@ -423,6 +430,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public void Update()
     {
+        if (!Utilities.IsValid(player)) return;
+
         VRCPlayerApi.TrackingData headOwner       = player.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
         VRCPlayerApi.TrackingData headLocalPlayer = Networking.LocalPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
         transform.position = headOwner.position + offset;
@@ -465,9 +474,19 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
             if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
 
-            ShowDanceFulfilledMesh();
-            AppendToDancedForList(ownerPlayerId);
-            SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnDanceFulfillmentClick));
+            // Only the audience member's selected dancer triggers fulfillment + increment.
+            // Unmatched dancers trigger increment only. A single SendCustomNetworkEvent
+            // per path avoids UdonSharp silently dropping the second event.
+            if (PlayerData.GetInt(player, KEY_SELECTED_DANCER) == Networking.LocalPlayer.playerId)
+            {
+                ShowDanceFulfilledMesh();
+                AppendToDancedForList(ownerPlayerId);
+                SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnFulfilmentAndIncrement));
+            }
+            else
+            {
+                SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnIncrementOnly));
+            }
             return;
         }
 
@@ -486,6 +505,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
         {
             audienceSpecialState = (audienceSpecialState + 1) % 3;
             UpdateSpecialStateText();
+            PlayerData.SetInt(KEY_AUDIENCE_SPECIAL_STATE, audienceSpecialState);
             RequestSerialization();
             SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
             return;
@@ -515,18 +535,43 @@ public class OverHeadDisplays : UdonSharpBehaviour
     {
         audienceSpecialState = (audienceSpecialState + 1) % 3;
         UpdateSpecialStateText();
+        PlayerData.SetInt(KEY_AUDIENCE_SPECIAL_STATE, audienceSpecialState);
         RequestSerialization();
     }
 
-    public void OnDanceFulfillmentClick()
+    public void OnIncrementOnly()
     {
         if (!CanClick) return;
         CanClick = false;
 
-        if (PlayerData.GetInt(Networking.LocalPlayer, KEY_SELECTED_DANCER) != 0)
+        if (PlayerData.GetBool(Networking.LocalPlayer, KEY_REQUEST_FULFILLED))
         {
-            PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
-            PlayerData.SetBool(KEY_REQUEST_FULFILLED, true);
+            CanClick = true;
+            RequestSerialization();
+            return;
+        }
+
+        int nextNumber = CalculateNextNumberState(number);
+        text.text = GetDisplayTextForNumber(nextNumber);
+        buttonImage.color = GetColorForNumber(nextNumber);
+        number = nextNumber;
+        PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, number);
+        RequestSerialization();
+        SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
+    }
+
+    public void OnFulfilmentAndIncrement()
+    {
+        if (!CanClick) return;
+        CanClick = false;
+
+        if (!PlayerData.GetBool(Networking.LocalPlayer, KEY_REQUEST_FULFILLED))
+        {
+            if (PlayerData.GetInt(Networking.LocalPlayer, KEY_SELECTED_DANCER) != 0)
+            {
+                PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
+                PlayerData.SetBool(KEY_REQUEST_FULFILLED, true);
+            }
         }
 
         int nextNumber = CalculateNextNumberState(number);
@@ -573,10 +618,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
         BoxCollider col = (BoxCollider)GetComponent(typeof(BoxCollider));
         if (col != null) col.enabled = visible;
 
-        if (_wasOwnerDancer && !ownerEnabled && manager != null)
+        if (_wasOwnerDancer && !ownerEnabled && player.isLocal && manager != null)
             ClearSelectionMeshes();
 
-        if (!_wasOwnerDancer && ownerEnabled && manager != null)
+        if (!_wasOwnerDancer && ownerEnabled && player.isLocal && manager != null)
         {
             RestoreSelectionMeshes();
             string dancedFor = PlayerData.GetString(player, KEY_DANCED_FOR);
