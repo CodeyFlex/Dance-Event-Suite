@@ -795,7 +795,8 @@ MonoBehaviour:
       Data: 45|UnityEngine.TooltipAttribute, UnityEngine.CoreModule
     - Name: tooltip
       Entry: 1
-      Data: Makes the OHD text rotate to face the viewer.
+      Data: Makes the OHD text rotate to face the viewer, useful if display is below
+        or above viewer.
     - Name: 
       Entry: 8
       Data: 

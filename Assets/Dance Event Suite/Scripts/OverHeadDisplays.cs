@@ -16,22 +16,31 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     [Tooltip("Minimum amount of seconds before a new click can occur on the OHD by a dancer.")]
     public float ClickDelay = 3f;
+    
     [Tooltip("Upwards offset of the OHD system above audience heads.")]
     public Vector3 offset;
+    
     [Tooltip("Your target amount of dances for each audience member.")]
     public int dancesNeeded = 2;
+    
     [Tooltip("Your target to discourage more dances for that audience member.")]
     public int dancesNoLongerNeeded = 5;
+    
     [Tooltip("Maximum amount of dances for each audience member.")]
     public int maxDances = 10;
+    
     [Tooltip("Text displayed within the button when the max amount of dances has been hit.")]
     public string noDancesText = "ND";
+    
     [Tooltip("How close a staff member has to be to press the button on the OverHead Display.")]
     public float MaxDistanceForClick = 5.0f;
+    
     [Tooltip("The amount of hours before the event data is reset for a new event.")]
     public float keepAlive = 8f;
+    
     [Tooltip("Toggle if you want event data reset after a set amount of time set in Keep Alive.")]
     public bool ResetEnabledAfterEvent = true;
+
     [Tooltip("Makes the OHD text rotate to face the viewer, useful if display is below or above viewer.")]
     public bool LookAtPlayers = false;
 
@@ -72,9 +81,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private bool IsMasterRestored = false;
     private bool IsLocalRestored = false;
 
-    private Color red    = new Color(1.0f, 0.0f, 0.0f, 1.0f);
-    private Color green  = new Color(0.0f, 1.0f, 0.0f, 1.0f);
-    private Color orange = new Color(1.0f, 0.5f, 0.0f, 1.0f);
+    // OHD Button Colors
+    private Color red    = new Color(0.85f, 0.0f, 0.0f, 1.0f);
+    private Color green  = new Color(0.0f, 0.85f, 0.0f, 1.0f);
+    private Color orange = new Color(0.85f, 0.45f, 0.0f, 1.0f);
     private Color white  = new Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     // VRC Persistence Strings
@@ -591,13 +601,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
     {
         if (!CanClick) return;
         CanClick = false;
-
-        if (PlayerData.GetBool(Networking.LocalPlayer, KEY_REQUEST_FULFILLED))
-        {
-            CanClick = true;
-            RequestSerialization();
-            return;
-        }
 
         int nextNumber = CalculateNextNumberState(number);
         ohdButtonText.text = GetDisplayTextForNumber(nextNumber);

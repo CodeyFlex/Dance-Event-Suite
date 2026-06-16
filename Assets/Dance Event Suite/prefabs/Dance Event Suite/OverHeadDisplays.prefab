@@ -75,8 +75,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4278190275
+  m_fontColor: {r: 0.764151, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -200,10 +200,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 0
+  m_text: 6
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 547f7ebc718769a42b42a060aa20ae47, type: 2}
-  m_sharedMaterial: {fileID: -882739730392683821, guid: 547f7ebc718769a42b42a060aa20ae47,
+  m_fontAsset: {fileID: 11400000, guid: f92b1e73146dff7439a4a0687ec79675, type: 2}
+  m_sharedMaterial: {fileID: -882739730392683821, guid: f92b1e73146dff7439a4a0687ec79675,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -228,8 +228,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 42
+  m_fontSizeBase: 42
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -910,7 +910,7 @@ MonoBehaviour:
     m_Top: 5
     m_Bottom: 5
   m_ChildAlignment: 4
-  m_Spacing: 0
+  m_Spacing: 5
   m_ChildForceExpandWidth: 0
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 1
@@ -952,14 +952,13 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 3891491829889135162}
-  number: 0
+  ClickDelay: 3
   offset: {x: 0, y: 0.7, z: 0}
   dancesNeeded: 2
   dancesNoLongerNeeded: 4
   maxDances: 10
   noDancesText: ND
   MaxDistanceForClick: 4
-  ClickDelay: 3
   keepAlive: 3
   ResetEnabledAfterEvent: 1
   LookAtPlayers: 0
