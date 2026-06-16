@@ -25,8 +25,13 @@ public class OverHeadDisplays : UdonSharpBehaviour
     public bool ResetEnabledAfterEvent = true;
     public bool LookAtPlayers = false;
 
-    [SerializeField] private UnityEngine.UI.Image buttonImage;
-    [SerializeField] public TMP_Text text;
+    [Tooltip("The image of the main Overhead Display's Button, currently used for color swaps.")]
+    [SerializeField] private UnityEngine.UI.Image ohdButtonImage;
+
+    [Tooltip("The text inside the Overhead Display's main Button.")]
+    [SerializeField] public TMP_Text ohdButtonText;
+
+    [Tooltip("The Canvas Group of the Overhead Display's.")]
     [SerializeField] private CanvasGroup canvasGroup;
 
     [Tooltip("Child mesh visible above this player's head only on the selected dancer's screen.")]
@@ -46,6 +51,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private int ownerPlayerId = -1;
 
     // Tracks which audience player IDs currently have THIS dancer selected.
+    // Manual int[] instead of List<int> — UdonSharp blocks generic collections.
     private int[] _activeSelectors;
     private int _activeSelectorCount = 0;
 
@@ -62,9 +68,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private Color white  = new Color(1.0f, 1.0f, 1.0f, 1.0f);
 
     // VRC Persistence Strings
-    private const string KEY_OVERHEAD_DISPLAYS = "Codeyflex.DanceEventSuite.OverHeadDisplays";
-    private const string KEY_OVERHEAD_DISPLAYS_COUNT = "Codeyflex.DanceEventSuite.OverHeadDisplaysCount";
-    private const string KEY_OVERHEAD_DISPLAYS_START = "Codeyflex.DanceEventSuite.OverHeadDisplaysStartTime";
+    private const string KEY_Dancer_Mode = "Codeyflex.DanceEventSuite.DancerMode";
+    private const string KEY_OVERHEAD_DISPLAYS_COUNT = "Codeyflex.DanceEventSuite.DancerModeCount";
+    private const string KEY_OVERHEAD_DISPLAYS_START = "Codeyflex.DanceEventSuite.DancerModeStartTime";
     private const string KEY_SELECTED_DANCER = "Codeyflex.DanceEventSuite.SelectedDancer";
     private const string KEY_NO_DANCES = "Codeyflex.DanceEventSuite.NoDances";
     private const string KEY_STAFF_MODE = "Codeyflex.DanceEventSuite.StaffMode";
@@ -161,14 +167,14 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     private bool IsLocalDancer()
     {
-        return player.isLocal && PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
+        return player.isLocal && PlayerData.GetBool(player, KEY_Dancer_Mode);
     }
 
     public override void OnPlayerDataUpdated(VRCPlayerApi player1, PlayerData.Info[] infos)
     {
         foreach (PlayerData.Info info in infos)
         {
-            if (info.Key == KEY_OVERHEAD_DISPLAYS)
+            if (info.Key == KEY_Dancer_Mode)
             {
                 UpdateEnabled();
                 OnDeserialization();
@@ -284,7 +290,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
         // explicitly hide for players who didn't select this dancer, and doing so
         // risks incorrectly hiding another audience member's mesh if the manager
         // lookup returns an unexpected result.
-        if (manager != null && player.isLocal && PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS))
+        if (manager != null && player.isLocal && PlayerData.GetBool(player, KEY_Dancer_Mode))
         {
             int selectedDancerId = PlayerData.GetInt(restoredPlayer, KEY_SELECTED_DANCER);
             if (selectedDancerId == ownerPlayerId)
@@ -304,7 +310,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
             OnDeserialization();
         }
 
-        if (restoredPlayer.isLocal && PlayerData.GetBool(restoredPlayer, KEY_OVERHEAD_DISPLAYS))
+        if (restoredPlayer.isLocal && PlayerData.GetBool(restoredPlayer, KEY_Dancer_Mode))
         {
             string dancedFor = PlayerData.GetString(restoredPlayer, KEY_DANCED_FOR);
             RefreshDanceFulfilledMeshes(dancedFor);
@@ -374,6 +380,15 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
     }
 
+    // -----------------------------------------------------------------------
+    // KeepAlive — cross-instance/session event reset
+    // -----------------------------------------------------------------------
+    // Compares master's start time vs local start time. If master's time
+    // exceeds local + keepAlive window, resets per-event data (counter,
+    // selection, NoDances, request fulfilled, danced-for list, special state).
+    // Role modes (Dancer/Staff/Media/EventManager) only clear if
+    // ResetEnabledAfterEvent is true. Uses DateTime.UtcNow for timezone-safe
+    // comparison.
     private void CheckStartTime()
     {
         DateTime masterStartTime = new DateTime(PlayerData.GetLong(Networking.Master, KEY_OVERHEAD_DISPLAYS_START));
@@ -397,7 +412,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 PlayerData.SetBool(KEY_NO_DANCES, false);
                 PlayerData.SetString(KEY_DANCED_FOR, "");
                 PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
-                PlayerData.SetBool(KEY_OVERHEAD_DISPLAYS, false);
+                PlayerData.SetBool(KEY_Dancer_Mode, false);
                 PlayerData.SetBool(KEY_STAFF_MODE, false);
                 PlayerData.SetBool(KEY_MEDIA_MODE, false);
                 PlayerData.SetBool(KEY_EVENT_MANAGER_MODE, false);
@@ -414,22 +429,25 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public override void OnDeserialization()
     {
+        // Special state text first so Birthday!/Freshie! stays visible even
+        // when NoDances blocks the number display below.
         UpdateSpecialStateText();
 
         if (PlayerData.GetBool(player, KEY_NO_DANCES))
         {
-            text.text = noDancesText;
-            buttonImage.color = GetColorForNumber(maxDances);
+            ohdButtonText.text = noDancesText;
+            ohdButtonImage.color = GetColorForNumber(maxDances);
         }
         else
         {
-            text.text = GetDisplayTextForNumber(number);
-            buttonImage.color = GetColorForNumber(number);
+            ohdButtonText.text = GetDisplayTextForNumber(number);
+            ohdButtonImage.color = GetColorForNumber(number);
         }
     }
 
     public void Update()
     {
+        // Stale player reference causes GetTrackingData to crash.
         if (!Utilities.IsValid(player)) return;
 
         VRCPlayerApi.TrackingData headOwner       = player.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
@@ -450,12 +468,24 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         if (!_isEnabled)
         {
-            text.text = "";
+            ohdButtonText.text = "";
             if (audienceSpecialStateText != null)
                 audienceSpecialStateText.gameObject.SetActive(false);
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Click handlers — local vs remote bifurcation
+    // -----------------------------------------------------------------------
+    // Remote path (non-owner): EventManager bypasses NoDances → cycles state.
+    // All other remote clicks blocked by NoDances. Matched selected dancer →
+    // OnFulfilmentAndIncrement; unmatched → OnIncrementOnly. Single
+    // SendCustomNetworkEvent per path (U# silently drops the second).
+    //
+    // Local path (owner): EventManager cycles special state. Dancers increment
+    // own number. Audience clears selection + locks further selections. CanClick
+    // debounce set here (owner writes synced var) but never in remote path
+    // (non-owners can't write synced variables).
     public void OnClick()
     {
         if (!CanClick) return;
@@ -470,7 +500,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 return;
             }
 
-            if (!PlayerData.GetBool(Networking.LocalPlayer, KEY_OVERHEAD_DISPLAYS)) return;
+            if (!PlayerData.GetBool(Networking.LocalPlayer, KEY_Dancer_Mode)) return;
 
             if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
 
@@ -513,11 +543,11 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
 
-        if (PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS))
+        if (PlayerData.GetBool(player, KEY_Dancer_Mode))
         {
             int nextNumber = CalculateNextNumberState(number);
-            text.text = GetDisplayTextForNumber(nextNumber);
-            buttonImage.color = GetColorForNumber(nextNumber);
+            ohdButtonText.text = GetDisplayTextForNumber(nextNumber);
+            ohdButtonImage.color = GetColorForNumber(nextNumber);
             number = nextNumber;
             PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, number);
             RequestSerialization();
@@ -539,6 +569,14 @@ public class OverHeadDisplays : UdonSharpBehaviour
         RequestSerialization();
     }
 
+    // -----------------------------------------------------------------------
+    // Owner-side rate-limited network event targets
+    // -----------------------------------------------------------------------
+    // CanClick debounce applied here (owner writes synced var). Non-owners
+    // never call these directly — only via SendCustomNetworkEvent from OnClick.
+    // OnIncrementOnly: number goes up, selection NOT cleared.
+    // OnFulfilmentAndIncrement: clears selection first if not already fulfilled
+    // (race guard: another audience member may have fulfilled first).
     public void OnIncrementOnly()
     {
         if (!CanClick) return;
@@ -552,8 +590,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
 
         int nextNumber = CalculateNextNumberState(number);
-        text.text = GetDisplayTextForNumber(nextNumber);
-        buttonImage.color = GetColorForNumber(nextNumber);
+        ohdButtonText.text = GetDisplayTextForNumber(nextNumber);
+        ohdButtonImage.color = GetColorForNumber(nextNumber);
         number = nextNumber;
         PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, number);
         RequestSerialization();
@@ -575,14 +613,20 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
 
         int nextNumber = CalculateNextNumberState(number);
-        text.text = GetDisplayTextForNumber(nextNumber);
-        buttonImage.color = GetColorForNumber(nextNumber);
+        ohdButtonText.text = GetDisplayTextForNumber(nextNumber);
+        ohdButtonImage.color = GetColorForNumber(nextNumber);
         number = nextNumber;
         PlayerData.SetInt(KEY_OVERHEAD_DISPLAYS_COUNT, number);
         RequestSerialization();
         SendCustomEventDelayedSeconds(nameof(OnClickEnd), ClickDelay);
     }
 
+    // -----------------------------------------------------------------------
+    // Special state (Birthday! / Freshie!)
+    // -----------------------------------------------------------------------
+    // Cycled by Event Manager clicks. Displayed on separate TMP_Text child
+    // independent of number text, so it stays visible regardless of number
+    // display or NoDances state.
     private void UpdateSpecialStateText()
     {
         if (audienceSpecialStateText == null) return;
@@ -602,12 +646,19 @@ public class OverHeadDisplays : UdonSharpBehaviour
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Visibility gate
+    // -----------------------------------------------------------------------
+    // All visibility flows through here: alpha, interactable, blocksRaycasts,
+    // box collider. Also handles mesh cleanup/restore when owner toggles
+    // Dancer mode. player.isLocal guards prevent non-dancer viewers from
+    // sweeping meshes on their client.
     private void UpdateEnabled()
     {
-        _isEnabled = PlayerData.GetBool(Networking.LocalPlayer, KEY_OVERHEAD_DISPLAYS) ||
+        _isEnabled = PlayerData.GetBool(Networking.LocalPlayer, KEY_Dancer_Mode) ||
                      PlayerData.GetBool(Networking.LocalPlayer, KEY_STAFF_MODE) ||
                      PlayerData.GetBool(Networking.LocalPlayer, KEY_EVENT_MANAGER_MODE);
-        bool ownerEnabled = PlayerData.GetBool(player, KEY_OVERHEAD_DISPLAYS);
+        bool ownerEnabled = PlayerData.GetBool(player, KEY_Dancer_Mode);
         bool ownerStaff = PlayerData.GetBool(player, KEY_STAFF_MODE);
         bool ownerMedia = PlayerData.GetBool(player, KEY_MEDIA_MODE);
         bool ownerEventManager = PlayerData.GetBool(player, KEY_EVENT_MANAGER_MODE);
@@ -631,6 +682,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
         _wasOwnerDancer = ownerEnabled;
     }
 
+    // -----------------------------------------------------------------------
+    // Number display helpers
+    // -----------------------------------------------------------------------
     private int CalculateNextNumberState(int currentNumber)
     {
         if (currentNumber < maxDances) return currentNumber + 1;
@@ -689,6 +743,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
             ohd.HideDanceFulfilledMesh();
     }
 
+    // -----------------------------------------------------------------------
+    // "Danced for" tracking — space-separated player IDs on audience PlayerData
+    // -----------------------------------------------------------------------
+    // PlayerData.GetString can return null for unset keys; guard with null->"".
     private void AppendToDancedForList(int playerId)
     {
         string existing = PlayerData.GetString(Networking.LocalPlayer, KEY_DANCED_FOR);

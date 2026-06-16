@@ -8,6 +8,12 @@ using VRC.Udon;
 // The Unity Button's OnClick event should call SendCustomEvent "OnClick"
 // Do NOT set anything else manually; DancerListUI.RefreshList() assigns the
 // correct dancer ID at runtime via SetDancerId().
+// -----------------------------------------------------------------------
+// Individual dancer slot on the DancerListUI board
+// -----------------------------------------------------------------------
+// DancerListUI.RefreshList() assigns dancer IDs via SetDancerId() at
+// runtime. OnClick forwards to DancerListUI.OnDancerSelected with the
+// stored ID. 0 means unpopulated slot (hidden).
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class DancerListButton : UdonSharpBehaviour
 {

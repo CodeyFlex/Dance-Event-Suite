@@ -963,8 +963,8 @@ MonoBehaviour:
   keepAlive: 3
   ResetEnabledAfterEvent: 1
   LookAtPlayers: 0
-  buttonImage: {fileID: 7151927285790131219}
-  text: {fileID: 2353731224854031144}
+  ohdButtonImage: {fileID: 7151927285790131219}
+  ohdButtonText: {fileID: 2353731224854031144}
   canvasGroup: {fileID: 1385146942152191170}
   selectionMesh: {fileID: 2322248247313453707}
   danceFulfilledMesh: {fileID: 3599988908864203053}

@@ -5,6 +5,11 @@ using VRC.SDK3.Persistence;
 using VRC.SDKBase;
 using VRC.Udon;
 
+// -----------------------------------------------------------------------
+// Staff Mode Toggle — PlayerData-only, mutual exclusivity
+// -----------------------------------------------------------------------
+// Mutual exclusivity with Dancer/Media/EventManager. 
+// Greyed out when any of the three exclusive roles is active.
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class OverHeadDisplaysStaff : UdonSharpBehaviour
 {
@@ -31,7 +36,7 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
                     IsEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.StaffMode");
                     needsUpdate = true;
                 }
-                if (info.Key == "Codeyflex.DanceEventSuite.OverHeadDisplays")
+                if (info.Key == "Codeyflex.DanceEventSuite.DancerMode")
                     needsUpdate = true;
                 if (info.Key == "Codeyflex.DanceEventSuite.MediaMode")
                     needsUpdate = true;
@@ -56,14 +61,14 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
     {
         if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) return;
 
-        if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays") ||
+        if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.DancerMode") ||
             PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode") ||
             PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode")) return;
 
         PlayerData.SetBool("Codeyflex.DanceEventSuite.StaffMode", !IsEnabled);
         if (!IsEnabled)
         {
-            PlayerData.SetBool("Codeyflex.DanceEventSuite.OverHeadDisplays", false);
+            PlayerData.SetBool("Codeyflex.DanceEventSuite.DancerMode", false);
             PlayerData.SetBool("Codeyflex.DanceEventSuite.MediaMode", false);
             PlayerData.SetBool("Codeyflex.DanceEventSuite.EventManagerMode", false);
         }
@@ -71,7 +76,7 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
 
     private void UpdateVisual()
     {
-        bool dancerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays");
+        bool dancerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.DancerMode");
         bool mediaEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode");
         bool eventManagerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode");
         if (dancerEnabled || mediaEnabled || eventManagerEnabled)

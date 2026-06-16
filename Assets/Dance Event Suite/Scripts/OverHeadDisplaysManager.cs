@@ -3,8 +3,14 @@ using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
 
+// -----------------------------------------------------------------------
+// OHD Registry — lookup all player OHD instances
+// -----------------------------------------------------------------------
+// Fixed-size array (U# can't resize). GetForPlayer uses stored ownerPlayerId
+// (int) rather than VRCPlayerApi.playerId because the stored reference can
+// return wrong values for remote players at runtime.
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-public class OverHeadDisplaysManager : UdonSharpBehaviour //Lookup registry
+public class OverHeadDisplaysManager : UdonSharpBehaviour
 {
     private OverHeadDisplays[] _registered = new OverHeadDisplays[100];
     private int _count = 0;

@@ -5,6 +5,11 @@ using VRC.SDK3.Persistence;
 using VRC.SDKBase;
 using VRC.Udon;
 
+// -----------------------------------------------------------------------
+// NoDances Toggle — independent, no mutual exclusivity
+// -----------------------------------------------------------------------
+// Anyone can toggle regardless of current role. Blocks most remote clicks
+// on OHDs (EventManager bypasses by design).
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class OverHeadDisplaysNoDances : UdonSharpBehaviour
 {

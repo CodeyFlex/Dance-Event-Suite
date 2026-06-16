@@ -5,6 +5,13 @@ using UnityEngine.UI;
 using VRC.SDK3.Persistence;
 using VRC.SDKBase;
 
+// -----------------------------------------------------------------------
+// Dancer List Board — shows active dancers, handles audience selection
+// -----------------------------------------------------------------------
+// Filters players by KEY_Dancer_Mode. Greyed out when local player
+// has any active role (Dancer/Staff/Media/EventManager) or has already
+// fulfilled their request. Three visual states: selected (green),
+// unselected (red), locked/greyed (grey).
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
 public class DancerListUI : UdonSharpBehaviour
 {
@@ -55,7 +62,7 @@ public class DancerListUI : UdonSharpBehaviour
     {
         foreach (PlayerData.Info info in infos)
         {
-            if (info.Key == "Codeyflex.DanceEventSuite.OverHeadDisplays")
+            if (info.Key == "Codeyflex.DanceEventSuite.DancerMode")
             {
                 RefreshList();
                 continue;
@@ -101,7 +108,7 @@ public class DancerListUI : UdonSharpBehaviour
     {
         if (dancerId == 0) return; // Slot not currently populated.
 
-        if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays"))
+        if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.DancerMode"))
             return; // Dancers cannot make selections.
 
         if (PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.RequestFulfilled"))
@@ -144,7 +151,7 @@ public class DancerListUI : UdonSharpBehaviour
         foreach (VRCPlayerApi p in players)
         {
             if (!Utilities.IsValid(p)) continue;
-            if (!PlayerData.GetBool(p, "Codeyflex.DanceEventSuite.OverHeadDisplays")) continue;
+            if (!PlayerData.GetBool(p, "Codeyflex.DanceEventSuite.DancerMode")) continue;
             if (slotIndex >= buttons.Length) break;
 
             int dancerId = p.playerId;
@@ -165,7 +172,7 @@ public class DancerListUI : UdonSharpBehaviour
         if (_slotDancerIds == null) return;
 
         bool isLocked = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.RequestFulfilled");
-        bool isStaffRole = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.OverHeadDisplays") ||
+        bool isStaffRole = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.DancerMode") ||
                            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode") ||
                            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode") ||
                            PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode");
