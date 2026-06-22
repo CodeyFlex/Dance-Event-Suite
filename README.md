@@ -1,11 +1,22 @@
-Fork of Talox DancerGuidance system, they did most of the work on this system, I just made some small changes and sharing them for anyone who would like them :D
+My expansion to the DancerGuidance system Talox built, with a focus on automating some of the club workflows that were done manually previously. Enjoy!
+
+**Dance Event Suite Expansion:**
+
+<img width="3820" height="3080" alt="Dance Event Suite 1 0" src="https://github.com/user-attachments/assets/db6701a8-4cc2-4746-b47a-a7e67518bafa" />
+
 
 **New features:**
 
-- "No dances" state.
-- Compact design to only keep the counter, and add visibility to the number with the button box for contrast around the number.
-- Number becomes visible again despite turning display off and on.
-- Bolder font
+- **Anonymous "Request a dancer" feature**: only the audience member and the requested dancer can see the request.
+- **Event manager mode**: Click OHD button to assign "Birthday!" or "Freshie!" state to audience members.
+- **Staff mode**: Hides your display, but shows audience displays
+- **Media mode**: Hides all displays, including your own.
+- **Displays are now truly hidden when hidden**. (Can't be clicked on or raycasted to anymore)
+- **Checkmarks** that indicate dance fulfillment to each dancer.
+- Entire system hidden from the VRC camera to not ruin event pictures.
+
+- **"No dances" state.** (Can be self-assigned)
+- **Compact design**: One button for audience interactions, counter within the button, other OHD elements only visible when necessary.
 
 - OverHeadNumber options for dance count customization.
   - 0 = White
@@ -16,7 +27,7 @@ Fork of Talox DancerGuidance system, they did most of the work on this system, I
   - Incrementing the counter after reaching "No Dances" state resets the counter.
   - Made counters invisible for cameras.
 
- <img width="491" height="460" alt="image" src="https://github.com/user-attachments/assets/0e76be5e-4270-40c4-906e-6d39f884fa0c" />
+<img width="526" height="469" alt="OHD" src="https://github.com/user-attachments/assets/aa920b47-84f1-4655-ac7e-cc91523d7333" />
 
 - Offset (Counters position from the player it belongs to): XYZ values (Y decreased to 0.6 in this image)
 - Click Delay (Seconds in between each dance counter increment): "Number" seconds. (Decreased to 0.1 seconds in this image)
