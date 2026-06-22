@@ -62,3 +62,8 @@ crashlytics-build.properties
 Assets/PackageMakerWindowData.asset*
 .idea
 .vscode
+
+Assets/*
+Packages/com.vrchat.core.vpm-resolver/*
+
+!Assets/Dance Event Suite/*
