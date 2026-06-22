@@ -122,8 +122,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
             Debug.Log($"[OverHeadDisplays] Registered for player: {player.displayName} (id: {ownerPlayerId})");
         }
 
-        selectionMesh.SetActive(false);
-        danceFulfilledMesh.SetActive(false);
+        if (selectionMesh != null)
+            selectionMesh.SetActive(false);
+        if (danceFulfilledMesh != null)
+            danceFulfilledMesh.SetActive(false);
         if (audienceSpecialStateText != null)
             audienceSpecialStateText.gameObject.SetActive(audienceSpecialState > 0);
         UpdateEnabled();
@@ -159,25 +161,30 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     public void ShowSelectionMesh()
     {
-        if (danceFulfilledMesh.activeSelf) return;
+        if (selectionMesh == null) return;
+        if (danceFulfilledMesh != null && danceFulfilledMesh.activeSelf) return;
         selectionMesh.SetActive(true);
         Debug.Log($"[OHD] ShowSelectionMesh called on {player.displayName} (id:{ownerPlayerId})");
     }
 
     public void HideSelectionMesh()
     {
+        if (selectionMesh == null) return;
         selectionMesh.SetActive(false);
         Debug.Log($"[OHD] HideSelectionMesh called on {player.displayName} (id:{ownerPlayerId})");
     }
 
     public void ShowDanceFulfilledMesh()
     {
-        selectionMesh.SetActive(false);
+        if (danceFulfilledMesh == null) return;
+        if (selectionMesh != null)
+            selectionMesh.SetActive(false);
         danceFulfilledMesh.SetActive(true);
     }
 
     public void HideDanceFulfilledMesh()
     {
+        if (danceFulfilledMesh == null) return;
         danceFulfilledMesh.SetActive(false);
     }
 
@@ -238,6 +245,16 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
                 if (player1.isLocal && PlayerData.GetBool(player1, KEY_NO_DANCES))
                     PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
+
+                // Hide checkmark for all clients when NoDances turns ON,
+                // so non-dancer viewers (staff, media) see the hide too.
+                // When NoDances turns OFF, RefreshSingleDanceFulfilledMesh
+                // below re-evaluates and shows it for dancer clients.
+                if (manager != null && PlayerData.GetBool(player1, KEY_NO_DANCES))
+                {
+                    OverHeadDisplays target = manager.GetForPlayer(player1);
+                    if (target != null) target.HideDanceFulfilledMesh();
+                }
 
                 if (!IsLocalDancer()) continue;
                 string dancedFor = PlayerData.GetString(player, KEY_DANCED_FOR);
@@ -453,6 +470,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
         // when NoDances blocks the number display below.
         UpdateSpecialStateText();
 
+        if (ohdButtonText == null || ohdButtonImage == null) return;
+
         if (PlayerData.GetBool(player, KEY_NO_DANCES))
         {
             ohdButtonText.text = noDancesText;
@@ -488,7 +507,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         if (!_isEnabled)
         {
-            ohdButtonText.text = "";
+            if (ohdButtonText != null)
+                ohdButtonText.text = "";
             if (audienceSpecialStateText != null)
                 audienceSpecialStateText.gameObject.SetActive(false);
         }
@@ -523,14 +543,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
             if (!PlayerData.GetBool(Networking.LocalPlayer, KEY_Dancer_Mode)) return;
 
             if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
+            
+            ShowDanceFulfilledMesh();
+            AppendToDancedForList(ownerPlayerId);
 
-            // Only the audience member's selected dancer triggers fulfillment + increment.
-            // Unmatched dancers trigger increment only. A single SendCustomNetworkEvent
-            // per path avoids UdonSharp silently dropping the second event.
             if (PlayerData.GetInt(player, KEY_SELECTED_DANCER) == Networking.LocalPlayer.playerId)
             {
-                ShowDanceFulfilledMesh();
-                AppendToDancedForList(ownerPlayerId);
                 SendCustomNetworkEvent(NetworkEventTarget.Owner, nameof(OnFulfilmentAndIncrement));
             }
             else
@@ -676,9 +694,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
         bool ownerMedia = PlayerData.GetBool(player, KEY_MEDIA_MODE);
         bool ownerEventManager = PlayerData.GetBool(player, KEY_EVENT_MANAGER_MODE);
         bool visible = !ownerEnabled & !ownerStaff & !ownerMedia & !ownerEventManager & _isEnabled;
-        canvasGroup.alpha = visible ? 1 : 0;
-        canvasGroup.interactable = visible;
-        canvasGroup.blocksRaycasts = visible;
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = visible ? 1 : 0;
+            canvasGroup.interactable = visible;
+            canvasGroup.blocksRaycasts = visible;
+        }
         BoxCollider col = (BoxCollider)GetComponent(typeof(BoxCollider));
         if (col != null) col.enabled = visible;
 
