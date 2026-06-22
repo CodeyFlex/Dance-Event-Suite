@@ -32,7 +32,8 @@ public class OverHeadDisplaysNoDances : UdonSharpBehaviour
                 if (info.Key == "Codeyflex.DanceEventSuite.NoDances")
                 {
                     IsEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.NoDances");
-                    image.color = IsEnabled ? OnColor : OffColor;
+                    if (image != null)
+                        image.color = IsEnabled ? OnColor : OffColor;
                 }
             }
         }
@@ -43,7 +44,8 @@ public class OverHeadDisplaysNoDances : UdonSharpBehaviour
         if (player.isLocal)
         {
             IsEnabled = PlayerData.GetBool(player, "Codeyflex.DanceEventSuite.NoDances");
-            image.color = IsEnabled ? OnColor : OffColor;
+            if (image != null)
+                image.color = IsEnabled ? OnColor : OffColor;
         }
     }
 

@@ -155,6 +155,9 @@ public class DancerListUI : UdonSharpBehaviour
             if (slotIndex >= buttons.Length) break;
 
             int dancerId = p.playerId;
+            if (buttonImages[slotIndex] == null) continue;
+            if (buttonLabels[slotIndex] == null) continue;
+            if (buttons[slotIndex] == null) continue;
             buttonImages[slotIndex].gameObject.SetActive(true);
             buttonLabels[slotIndex].text = p.displayName;
             buttons[slotIndex].SetDancerId(dancerId);
@@ -180,6 +183,7 @@ public class DancerListUI : UdonSharpBehaviour
 
         for (int i = 0; i < buttonImages.Length; i++)
         {
+            if (buttonImages[i] == null) continue;
             if (!buttonImages[i].gameObject.activeSelf) continue;
 
             if (isLocked || isStaffRole)
@@ -197,8 +201,9 @@ public class DancerListUI : UdonSharpBehaviour
     {
         for (int i = 0; i < buttons.Length; i++)
         {
-            buttonImages[i].gameObject.SetActive(false);
-            if (buttons   != null) buttons[i].SetDancerId(0);
+            if (buttonImages[i] != null)
+                buttonImages[i].gameObject.SetActive(false);
+            if (buttons   != null && buttons[i] != null) buttons[i].SetDancerId(0);
             if (_slotDancerIds != null) _slotDancerIds[i] = 0;
         }
     }

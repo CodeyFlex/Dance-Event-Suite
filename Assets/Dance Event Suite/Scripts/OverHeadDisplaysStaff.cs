@@ -76,6 +76,7 @@ public class OverHeadDisplaysStaff : UdonSharpBehaviour
 
     private void UpdateVisual()
     {
+        if (image == null) return;
         bool dancerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.DancerMode");
         bool mediaEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.MediaMode");
         bool eventManagerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode");

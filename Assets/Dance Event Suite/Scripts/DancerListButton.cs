@@ -32,6 +32,7 @@ public class DancerListButton : UdonSharpBehaviour
     public void OnClick()
     {
         if ((transform.position - Networking.LocalPlayer.GetPosition()).magnitude > MaxDistanceForClick) return;
+        if (listUI == null) return;
         listUI.OnDancerSelected(_dancerId);
     }
 }
