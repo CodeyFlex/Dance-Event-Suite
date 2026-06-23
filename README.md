@@ -33,8 +33,8 @@ My expansion to the DancerGuidance system Talox built, with a focus on automatin
 - Click Delay (Seconds in between each dance counter increment): "Number" seconds. (Decreased to 0.1 seconds in this image)
 - Keep Alive (How long dance count is persisted): "Number" hours. (Decreased to 3 hours in this image)
 
-- System is hidden from cameras to not ruin event pictures.
-<video src="https://github.com/user-attachments/assets/c44cd2b5-9c9d-4de3-b9e7-8d44cf6b0c89" autoplay loop muted playsinline width="100%"></video>
+- System is **hidden from VRC cameras** to not ruin event pictures.
+<video src="https://github.com/user-attachments/assets/c37582ea-decd-4deb-add8-b3fa07c77234" autoplay loop muted playsinline width="100%"></video>
 
 # How to use
 
