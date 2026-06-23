@@ -18,7 +18,7 @@ My expansion to the DancerGuidance system Talox built, with a focus on automatin
 - **"No dances" state.** (Can be self-assigned)
 - **Compact design**: One button for audience interactions, counter within the button, other OHD elements only visible when necessary.
 
-- OverHeadNumber options for dance count customization.
+- OverHead Number options for dance count customization.
   - 0 = White
   - 1 - Dances Needed = Green
   - Dances Needed - Dances No Longer Needed = Orange
@@ -33,11 +33,8 @@ My expansion to the DancerGuidance system Talox built, with a focus on automatin
 - Click Delay (Seconds in between each dance counter increment): "Number" seconds. (Decreased to 0.1 seconds in this image)
 - Keep Alive (How long dance count is persisted): "Number" hours. (Decreased to 3 hours in this image)
 
-<video src="https://github.com/user-attachments/assets/6c091397-97ab-4eee-b08b-82812854dcc0" autoplay loop muted playsinline width="100%"></video>
-
-<video src="https://github.com/user-attachments/assets/00cfe19a-f8e1-4115-86ce-721494abbe0c" autoplay loop muted playsinline width="100%"></video>
-
-<video src="https://github.com/user-attachments/assets/db7838da-ec08-44fd-a597-34edd913ac28" autoplay loop muted playsinline width="100%"></video>
+- System is **hidden from VRC cameras** to not ruin event pictures.
+<video src="https://github.com/user-attachments/assets/c37582ea-decd-4deb-add8-b3fa07c77234" autoplay loop muted playsinline width="100%"></video>
 
 # How to use
 
