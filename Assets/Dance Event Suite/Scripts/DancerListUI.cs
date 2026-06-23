@@ -26,12 +26,12 @@ public class DancerListUI : UdonSharpBehaviour
     [Tooltip("TMP_Text on each slot. Same order as buttons and buttonImages.")]
     [SerializeField] private TMP_Text[] buttonLabels;
 
-    private Color _selectedColour   = new Color(0.0f, 0.8f, 0.2f, 1.0f);
-    private Color _unselectedColour = new Color(0.8f, 0.1f, 0.1f, 1.0f);
-    private Color _lockedColour     = new Color(0.35f, 0.35f, 0.35f, 1.0f);
+    [SerializeField] private Color _selectedColor   = new Color(0.0f, 0.8f, 0.2f, 1.0f);
+    [SerializeField] private Color _unselectedColor = new Color(0.8f, 0.1f, 0.1f, 1.0f);
+    [SerializeField] private Color _lockedColor     = new Color(0.35f, 0.35f, 0.35f, 1.0f);
 
     // Tracks which dancer ID each visible slot currently represents.
-    // Used for button colour logic. Populated in RefreshList alongside SetDancerId.
+    // Used for button color logic. Populated in RefreshList alongside SetDancerId.
     private int[] _slotDancerIds;
 
     private void Start()
@@ -188,12 +188,12 @@ public class DancerListUI : UdonSharpBehaviour
 
             if (isLocked || isStaffRole)
             {
-                buttonImages[i].color = _lockedColour;
+                buttonImages[i].color = _lockedColor;
                 continue;
             }
 
             bool isSelected = _slotDancerIds[i] != 0 && _slotDancerIds[i] == currentSelectionId;
-            buttonImages[i].color = isSelected ? _selectedColour : _unselectedColour;
+            buttonImages[i].color = isSelected ? _selectedColor : _unselectedColor;
         }
     }
 

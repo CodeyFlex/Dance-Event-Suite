@@ -82,10 +82,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private bool IsLocalRestored = false;
 
     // OHD Button Colors
-    private Color red    = new Color(0.85f, 0.0f, 0.0f, 1.0f);
-    private Color green  = new Color(0.0f, 0.85f, 0.0f, 1.0f);
-    private Color orange = new Color(0.85f, 0.45f, 0.0f, 1.0f);
-    private Color white  = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+    [SerializeField] private Color buttonColorMaxDances            = new Color(0.85f, 0.0f, 0.0f, 1.0f); // Red
+    [SerializeField] private Color buttonColorDancesNoLongerNeeded = new Color(0.85f, 0.45f, 0.0f, 1.0f); // Orange
+    [SerializeField] private Color buttonColorDancesNeeded         = new Color(0.0f, 0.85f, 0.0f, 1.0f); // Green
+    [SerializeField] private Color buttonColorDefault              = new Color(1.0f, 1.0f, 1.0f, 1.0f); // White
 
     // VRC Persistence Strings
     private const string KEY_Dancer_Mode = "Codeyflex.DanceEventSuite.DancerMode";
@@ -733,10 +733,10 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
     private Color GetColorForNumber(int num)
     {
-        if (num == 0) return white;
-        else if (num > dancesNoLongerNeeded) return red;
-        else if (num > dancesNeeded && num <= dancesNoLongerNeeded) return orange;
-        else return green;
+        if (num == 0) return buttonColorDefault;
+        else if (num > dancesNoLongerNeeded) return buttonColorMaxDances;
+        else if (num > dancesNeeded && num <= dancesNoLongerNeeded) return buttonColorDancesNoLongerNeeded;
+        else return buttonColorDancesNeeded;
     }
 
     // -----------------------------------------------------------------------

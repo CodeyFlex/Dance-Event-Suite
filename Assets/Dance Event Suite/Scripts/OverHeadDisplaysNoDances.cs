@@ -18,8 +18,8 @@ public class OverHeadDisplaysNoDances : UdonSharpBehaviour
 
     public float MaxDistanceForClick = 5.0f;
 
-    private Color OnColor = new Color(0.0f, 1.0f, 0.0f, 1.0f);
-    private Color OffColor = new Color(1.0f, 0.0f, 0.0f, 1.0f);
+    [SerializeField] private Color OnColor  = new Color(0.0f, 1.0f, 0.0f, 1.0f); // Green
+    [SerializeField] private Color OffColor = new Color(1.0f, 0.0f, 0.0f, 1.0f); // Red
 
     private bool IsEnabled = false;
 

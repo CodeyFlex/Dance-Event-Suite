@@ -18,9 +18,9 @@ public class OverHeadDisplaysMedia : UdonSharpBehaviour
 
     public float MaxDistanceForClick = 5.0f;
 
-    private Color OnColor = new Color(0.0f, 1.0f, 0.0f, 1.0f);
-    private Color OffColor = new Color(1.0f, 0.0f, 0.0f, 1.0f);
-    private Color DisabledColor = new Color(0.35f, 0.35f, 0.35f, 1.0f);
+    [SerializeField] private Color _selectedColor   = new Color(0.0f, 0.9f, 0.0f, 1.0f); // Green
+    [SerializeField] private Color _unselectedColor = new Color(0.9f, 0.0f, 0.0f, 1.0f); // Red
+    [SerializeField] private Color _lockedColor     = new Color(0.35f, 0.35f, 0.35f, 1.0f); // Gray
 
     private bool IsEnabled = false;
 
@@ -81,8 +81,8 @@ public class OverHeadDisplaysMedia : UdonSharpBehaviour
         bool staffEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.StaffMode");
         bool eventManagerEnabled = PlayerData.GetBool(Networking.LocalPlayer, "Codeyflex.DanceEventSuite.EventManagerMode");
         if (dancerEnabled || staffEnabled || eventManagerEnabled)
-            image.color = DisabledColor;
+            image.color = _lockedColor;
         else
-            image.color = IsEnabled ? OnColor : OffColor;
+            image.color = IsEnabled ? _selectedColor : _unselectedColor;
     }
 }
