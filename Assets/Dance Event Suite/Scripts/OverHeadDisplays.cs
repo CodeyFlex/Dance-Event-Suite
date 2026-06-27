@@ -48,7 +48,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     [SerializeField] private UnityEngine.UI.Image ohdButtonImage;
 
     [Tooltip("The text inside the Overhead Display's main Button.")]
-    [SerializeField] public TMP_Text ohdButtonText;
+    [SerializeField] private TMP_Text ohdButtonText;
 
     [Tooltip("The Canvas Group of the Overhead Display's.")]
     [SerializeField] private CanvasGroup canvasGroup;
@@ -95,6 +95,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private const string KEY_NO_DANCES = "Codeyflex.DanceEventSuite.NoDances";
     private const string KEY_STAFF_MODE = "Codeyflex.DanceEventSuite.StaffMode";
     private const string KEY_DANCED_FOR = "Codeyflex.DanceEventSuite.DancedFor";
+    private const string KEY_DANCED_FOR_NAMES = "Codeyflex.DanceEventSuite.DancedForNames";
     private const string KEY_REQUEST_FULFILLED = "Codeyflex.DanceEventSuite.RequestFulfilled";
     private const string KEY_MEDIA_MODE = "Codeyflex.DanceEventSuite.MediaMode";
     private const string KEY_EVENT_MANAGER_MODE = "Codeyflex.DanceEventSuite.EventManagerMode";
@@ -117,10 +118,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
         if (manager == null)
             Debug.LogError($"[OverHeadDisplays] Could not find OverHeadDisplaysManager named '{managerObjectName}'.");
         else
-        {
             manager.Register(this);
-            Debug.Log($"[OverHeadDisplays] Registered for player: {player.displayName} (id: {ownerPlayerId})");
-        }
 
         if (selectionMesh != null)
             selectionMesh.SetActive(false);
@@ -146,6 +144,27 @@ public class OverHeadDisplays : UdonSharpBehaviour
         RemoveSelector(leftPlayer.playerId);
     }
 
+    public override void OnPlayerJoined(VRCPlayerApi joinedPlayer)
+    {
+        if (!player.isLocal) return;
+        if (!PlayerData.GetBool(player, KEY_Dancer_Mode)) return;
+        if (joinedPlayer.playerId == ownerPlayerId) return;
+        string dancedForNames = PlayerData.GetString(player, KEY_DANCED_FOR_NAMES);
+        if (dancedForNames == null || dancedForNames.Length == 0) return;
+        if (IsNameInList(dancedForNames, joinedPlayer.displayName))
+        {
+            string existingIds = PlayerData.GetString(player, KEY_DANCED_FOR);
+            if (existingIds == null) existingIds = "";
+            string idStr = joinedPlayer.playerId.ToString();
+            if (!IsIdInList(existingIds, joinedPlayer.playerId))
+            {
+                string updatedIds = existingIds.Length > 0 ? existingIds + " " + idStr : idStr;
+                PlayerData.SetString(KEY_DANCED_FOR, updatedIds);
+            }
+        }
+        RefreshDanceFulfilledMeshesByName(dancedForNames);
+    }
+
     private void OnDestroy()
     {
         if (manager != null)
@@ -157,6 +176,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
     // -----------------------------------------------------------------------
 
     public int GetOwnerPlayerId() => ownerPlayerId;
+    public string GetOwnerPlayerName() => Utilities.IsValid(player) ? player.displayName : "";
     public VRCPlayerApi GetOwnerPlayer() => player;
 
     public void ShowSelectionMesh()
@@ -164,14 +184,12 @@ public class OverHeadDisplays : UdonSharpBehaviour
         if (selectionMesh == null) return;
         if (danceFulfilledMesh != null && danceFulfilledMesh.activeSelf) return;
         selectionMesh.SetActive(true);
-        Debug.Log($"[OHD] ShowSelectionMesh called on {player.displayName} (id:{ownerPlayerId})");
     }
 
     public void HideSelectionMesh()
     {
         if (selectionMesh == null) return;
         selectionMesh.SetActive(false);
-        Debug.Log($"[OHD] HideSelectionMesh called on {player.displayName} (id:{ownerPlayerId})");
     }
 
     public void ShowDanceFulfilledMesh()
@@ -226,7 +244,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
                     }
                     AddSelector(player1.playerId);
                     selectorOHD.ShowSelectionMesh();
-                    Debug.Log($"[OHD:{player.displayName} id:{ownerPlayerId}] {player1.displayName} selected us. Active selectors: {_activeSelectorCount}");
                 }
                 else if (player1HadMeSelected)
                 {
@@ -234,7 +251,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
                     if (selectorOHD == null) continue;
                     RemoveSelector(player1.playerId);
                     selectorOHD.HideSelectionMesh();
-                    Debug.Log($"[OHD:{player.displayName} id:{ownerPlayerId}] {player1.displayName} deselected us. Active selectors: {_activeSelectorCount}");
                 }
             }
 
@@ -433,9 +449,6 @@ public class OverHeadDisplays : UdonSharpBehaviour
 
         if (player.isMaster) masterStartTime = DateTime.UtcNow;
 
-        Debug.Log($"MasterStartTime: {masterStartTime} LocalStartTime: {localStartTime} " +
-                  $"Diff: {masterStartTime - localStartTime} KeepAlive: {TimeSpan.FromHours(keepAlive)}");
-
         if (masterStartTime - (localStartTime + TimeSpan.FromHours(keepAlive)) > TimeSpan.Zero)
         {
             PlayerData.SetLong(KEY_OVERHEAD_DISPLAYS_START, masterStartTime.Ticks);
@@ -448,6 +461,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
                 PlayerData.SetBool(KEY_REQUEST_FULFILLED, false);
                 PlayerData.SetBool(KEY_NO_DANCES, false);
                 PlayerData.SetString(KEY_DANCED_FOR, "");
+                PlayerData.SetString(KEY_DANCED_FOR_NAMES, "");
                 PlayerData.SetInt(KEY_SELECTED_DANCER, 0);
                 PlayerData.SetBool(KEY_Dancer_Mode, false);
                 PlayerData.SetBool(KEY_STAFF_MODE, false);
@@ -543,9 +557,9 @@ public class OverHeadDisplays : UdonSharpBehaviour
             if (!PlayerData.GetBool(Networking.LocalPlayer, KEY_Dancer_Mode)) return;
 
             if (PlayerData.GetBool(player, KEY_NO_DANCES)) return;
-            
+
             ShowDanceFulfilledMesh();
-            AppendToDancedForList(ownerPlayerId);
+            AppendToDancedForList(player.playerId, player.displayName);
 
             if (PlayerData.GetInt(player, KEY_SELECTED_DANCER) == Networking.LocalPlayer.playerId)
             {
@@ -693,7 +707,7 @@ public class OverHeadDisplays : UdonSharpBehaviour
         bool ownerStaff = PlayerData.GetBool(player, KEY_STAFF_MODE);
         bool ownerMedia = PlayerData.GetBool(player, KEY_MEDIA_MODE);
         bool ownerEventManager = PlayerData.GetBool(player, KEY_EVENT_MANAGER_MODE);
-        bool visible = !ownerEnabled & !ownerStaff & !ownerMedia & !ownerEventManager & _isEnabled;
+        bool visible = !ownerEnabled && !ownerStaff && !ownerMedia && !ownerEventManager && _isEnabled;
         if (canvasGroup != null)
         {
             canvasGroup.alpha = visible ? 1 : 0;
@@ -722,8 +736,8 @@ public class OverHeadDisplays : UdonSharpBehaviour
     private int CalculateNextNumberState(int currentNumber)
     {
         if (currentNumber < maxDances) return currentNumber + 1;
-        else if (currentNumber == maxDances + 1) return maxDances + 1;
-        else return 0;
+        if (currentNumber == maxDances) return 0;
+        return currentNumber;
     }
 
     private string GetDisplayTextForNumber(int num)
@@ -750,6 +764,13 @@ public class OverHeadDisplays : UdonSharpBehaviour
             && !PlayerData.GetBool(ohd.GetOwnerPlayer(), KEY_NO_DANCES);
     }
 
+    private bool ShouldShowDanceFulfilledMeshByName(string dancedForNames, OverHeadDisplays ohd)
+    {
+        return IsNameInList(dancedForNames, ohd.GetOwnerPlayerName())
+            && ohd.number < maxDances
+            && !PlayerData.GetBool(ohd.GetOwnerPlayer(), KEY_NO_DANCES);
+    }
+
     private void RefreshDanceFulfilledMeshes(string dancedFor)
     {
         if (manager == null) return;
@@ -759,7 +780,25 @@ public class OverHeadDisplays : UdonSharpBehaviour
         {
             OverHeadDisplays ohd = all[i];
             if (ohd == null) continue;
-            if (ShouldShowDanceFulfilledMesh(dancedFor, ohd))
+            bool show = ShouldShowDanceFulfilledMesh(dancedFor, ohd);
+            if (show)
+                ohd.ShowDanceFulfilledMesh();
+            else
+                ohd.HideDanceFulfilledMesh();
+        }
+    }
+
+    private void RefreshDanceFulfilledMeshesByName(string dancedForNames)
+    {
+        if (manager == null) return;
+        int count = manager.GetCount();
+        OverHeadDisplays[] all = manager.GetAll();
+        for (int i = 0; i < count; i++)
+        {
+            OverHeadDisplays ohd = all[i];
+            if (ohd == null) continue;
+            bool show = ShouldShowDanceFulfilledMeshByName(dancedForNames, ohd);
+            if (show)
                 ohd.ShowDanceFulfilledMesh();
             else
                 ohd.HideDanceFulfilledMesh();
@@ -778,41 +817,65 @@ public class OverHeadDisplays : UdonSharpBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // "Danced for" tracking — space-separated player IDs on audience PlayerData
+    // "Danced for" tracking — dual-key: player IDs + display names
     // -----------------------------------------------------------------------
-    // PlayerData.GetString can return null for unset keys; guard with null->"".
-    private void AppendToDancedForList(int playerId)
+    // KEY_DANCED_FOR stores space-separated player IDs for unique same-instance
+    // matching. KEY_DANCED_FOR_NAMES stores |-delimited display names for
+    // persistent rejoin matching. OnPlayerJoined uses names to restore the
+    // checkmark and also writes the new player ID to KEY_DANCED_FOR so future
+    // ID-based matching works for the rejoined player.
+    private void AppendToDancedForList(int playerId, string displayName)
     {
-        string existing = PlayerData.GetString(Networking.LocalPlayer, KEY_DANCED_FOR);
-        if (existing == null) existing = "";
-        if (IsIdInList(existing, playerId)) return;
-
+        string existingIds = PlayerData.GetString(Networking.LocalPlayer, KEY_DANCED_FOR);
+        if (existingIds == null) existingIds = "";
         string idStr = playerId.ToString();
-        string updated = existing.Length > 0 ? existing + " " + idStr : idStr;
-        PlayerData.SetString(KEY_DANCED_FOR, updated);
+        if (!IsIdInList(existingIds, playerId))
+        {
+            string updatedIds = existingIds.Length > 0 ? existingIds + " " + idStr : idStr;
+            PlayerData.SetString(KEY_DANCED_FOR, updatedIds);
+        }
+
+        string existingNames = PlayerData.GetString(Networking.LocalPlayer, KEY_DANCED_FOR_NAMES);
+        if (existingNames == null) existingNames = "";
+        if (!IsNameInList(existingNames, displayName))
+        {
+            string updatedNames = existingNames.Length > 0 ? existingNames + "|" + displayName : displayName;
+            PlayerData.SetString(KEY_DANCED_FOR_NAMES, updatedNames);
+        }
+    }
+
+    private bool IsInDelimitedList(string list, string item, char delimiter)
+    {
+        if (list == null || list.Length == 0) return false;
+        if (item == null || item.Length == 0) return false;
+
+        int itemLen = item.Length;
+        int listLen = list.Length;
+        if (itemLen > listLen) return false;
+
+        for (int i = 0; i <= listLen - itemLen; i++)
+        {
+            bool match = true;
+            for (int j = 0; j < itemLen; j++)
+            {
+                if (list[i + j] != item[j]) { match = false; break; }
+            }
+            if (!match) continue;
+
+            bool startBoundary = i == 0 || list[i - 1] == delimiter;
+            bool endBoundary = i + itemLen == listLen || list[i + itemLen] == delimiter;
+            if (startBoundary && endBoundary) return true;
+        }
+        return false;
     }
 
     private bool IsIdInList(string list, int playerId)
     {
-        if (list == null || list.Length == 0) return false;
+        return IsInDelimitedList(list, playerId.ToString(), ' ');
+    }
 
-        string idStr = playerId.ToString();
-        int listLen = list.Length;
-        int idLen = idStr.Length;
-
-        for (int i = 0; i <= listLen - idLen; i++)
-        {
-            bool match = true;
-            for (int j = 0; j < idLen; j++)
-            {
-                if (list[i + j] != idStr[j]) { match = false; break; }
-            }
-            if (!match) continue;
-
-            bool startBoundary = i == 0 || list[i - 1] == ' ';
-            bool endBoundary = i + idLen == listLen || list[i + idLen] == ' ';
-            if (startBoundary && endBoundary) return true;
-        }
-        return false;
+    private bool IsNameInList(string list, string name)
+    {
+        return IsInDelimitedList(list, name, '|');
     }
 }
